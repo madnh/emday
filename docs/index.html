@@ -169,15 +169,19 @@ footer a { color: var(--muted); }
 </section>
 
 <h2 id="install">install</h2>
-<p>Grab the binary for your platform from
-<a href="https://github.com/madnh/emday/releases/latest">the latest release</a>, e.g. on a Linux server:</p>
+<p>One line on Linux or macOS — detects your platform, verifies the sha256, installs the binary:</p>
+<pre><code>curl -fsSL https://madnh.github.io/emday/install.sh | sh</code></pre>
+<p class="note">Prefer to read before you run? <a href="install.sh">Inspect the script</a> —
+it only downloads the release asset, checks it against <code>checksums.txt</code>, and runs
+<code>install</code>. Pin a version with <code>EMDAY_VERSION=0.1.0</code>; change the location
+with <code>EMDAY_INSTALL_DIR</code>.</p>
+<p>Or install manually from <a href="https://github.com/madnh/emday/releases/latest">the latest
+release</a> (Windows: grab the zip):</p>
 <pre><code>curl -fsSL -o emday.tar.gz \
   https://github.com/madnh/emday/releases/latest/download/emday_VERSION_linux_amd64.tar.gz
 tar -xzf emday.tar.gz emday
 sudo install -m 0755 emday /usr/local/bin/emday
 emday version</code></pre>
-<p class="note">Verify downloads with <code>sha256sum -c checksums.txt --ignore-missing</code>
-(checksums ship with every release).</p>
 
 <h2 id="quickstart">quick start</h2>
 <pre><code>sudo emday init            # creates /etc/emday with a commented starter config

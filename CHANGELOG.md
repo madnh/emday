@@ -6,6 +6,17 @@ All notable changes to emday are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- `install.sh` one-line installer served from the website
+  (`curl -fsSL https://madnh.github.io/emday/install.sh | sh`): detects
+  OS/arch, verifies the release checksum, installs the binary. Supports
+  `EMDAY_VERSION` and `EMDAY_INSTALL_DIR` overrides.
+- Test coverage for the config (resolution, schema guards, validation,
+  conditions), state (persistence, dedup), model, embedded docs, and CLI
+  packages — including a guard that the `init` starter config always
+  passes `check-config`.
+
 ## [0.1.0] - 2026-07-13
 
 First working release — the full pipeline described in DESIGN.md.

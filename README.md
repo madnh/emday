@@ -16,7 +16,14 @@ changes, emday pings you: *"em đây, IP này nè"* (it's me, here's my new IP).
 
 ## Install
 
-Download the binary for your platform from the
+One line on Linux/macOS (detects platform, verifies sha256 —
+[inspect the script](docs/install.sh) first if you like):
+
+```console
+$ curl -fsSL https://madnh.github.io/emday/install.sh | sh
+```
+
+Or download the binary for your platform from the
 [latest release](https://github.com/madnh/emday/releases/latest)
 (`linux_amd64`, `linux_arm64`, `darwin_arm64`, ... — verify with
 `sha256sum -c checksums.txt --ignore-missing`), or build from source with

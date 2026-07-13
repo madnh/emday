@@ -61,7 +61,13 @@ ol li, ul li { margin: 0.3rem 0; }
 <p>Tên gọi: khi server đổi IP, emday nhắn cho bạn — <em>“em đây, IP mới nè!”</em> 😉</p>
 
 <h2 id="cai-dat"><span class="n">1.</span> Cài đặt</h2>
-<p>Tải binary cho Linux từ <a href="https://github.com/madnh/emday/releases/latest">bản release mới nhất</a>
+<p>Cách nhanh nhất — một lệnh, tự nhận diện OS/kiến trúc máy, tự kiểm tra sha256:</p>
+<pre><code>curl -fsSL https://madnh.github.io/emday/install.sh | sh</code></pre>
+<div class="tip">💡 Muốn đọc script trước khi chạy (thói quen tốt!): mở
+<a href="install.sh">install.sh</a> — nó chỉ tải file release, so checksum rồi
+<code>install</code> vào <code>/usr/local/bin</code>, không đụng gì khác. Cài phiên bản
+cụ thể: <code>EMDAY_VERSION=0.1.0 sh</code>; đổi chỗ cài: <code>EMDAY_INSTALL_DIR=...</code></div>
+<p>Hoặc cài thủ công từ <a href="https://github.com/madnh/emday/releases/latest">bản release mới nhất</a>
 (chọn <code>linux_amd64</code> hoặc <code>linux_arm64</code> tuỳ máy — xem bằng <code>uname -m</code>):</p>
 <pre><code># thay VERSION bằng phiên bản thực tế, ví dụ 0.1.0
 curl -fsSL -o emday.tar.gz \
