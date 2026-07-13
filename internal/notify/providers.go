@@ -254,7 +254,14 @@ func (l *lark) Send(ctx context.Context, e model.Event) error {
 			},
 		},
 	}
-	if s := signSecret(l.cfg); s != "" {
+	// A configured-but-empty secret means the env var is missing where this
+	// process runs — fail with the real cause instead of letting Lark answer
+	// an opaque "sign match fail" (code 19021).
+	if l.cfg.Secret != "" || l.cfg.SecretEnv != "" {
+		s := signSecret(l.cfg)
+		if s == "" {
+			return fmt.Errorf("lark signing secret is empty (env %s not set in this environment? the service does not inherit your shell)", l.cfg.SecretEnv)
+		}
 		ts := time.Now().Unix()
 		payload["timestamp"] = fmt.Sprintf("%d", ts)
 		payload["sign"] = larkSign(s, ts)

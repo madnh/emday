@@ -233,6 +233,7 @@ config có hợp lệ không? daemon đã chạy chưa? có thông báo nào đa
 <tr><td>Service không chạy</td><td><code>emday status</code>, rồi <code>journalctl -u emday -n 50</code></td></tr>
 <tr><td>Sửa config xong quên kiểm tra</td><td><code>emday check-config</code> — luôn chạy sau mỗi lần sửa</td></tr>
 <tr><td>Điều kiện rule không như ý</td><td><code>emday test-rule '...' --value ...</code></td></tr>
+<tr><td>Lark báo <code>code 19021: sign match fail...</code></td><td>Đồng hồ server lệch quá 1 giờ (<code>timedatectl</code> — bật NTP: <code>sudo timedatectl set-ntp true</code>), hoặc secret sai / env chưa set ở nơi emday chạy (<code>emday doctor</code> sẽ cảnh báo env thiếu)</td></tr>
 </table>
 
 <h2 id="tai-lieu"><span class="n">7.</span> Tài liệu đầy đủ (trong chính binary)</h2>

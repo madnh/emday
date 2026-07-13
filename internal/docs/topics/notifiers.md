@@ -49,6 +49,12 @@ signs each message (HMAC-SHA256, as the bot API requires). Alerts render as
 an interactive card: colored header by level (info=blue, warn=orange,
 error=red, resolved=green), host/source fields, detail block.
 
+Getting `lark code 19021: sign match fail or timestamp is not within one
+hour`? Two causes: the server clock is off by more than an hour (check
+`timedatectl`; fix with `timedatectl set-ntp true`), or the signing secret
+is wrong / the env var is not set where emday runs (`emday doctor` flags
+unset notifier env vars).
+
 ## slack (incoming webhook)
 
     notifiers:

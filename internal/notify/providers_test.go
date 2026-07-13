@@ -151,3 +151,14 @@ func TestSlackAndDiscordShape(t *testing.T) {
 		t.Errorf("discord error color = %v", emb["color"])
 	}
 }
+
+// A configured secret_env that is unset must fail with the real cause, not
+// reach Lark and come back as an opaque 19021.
+func TestLarkEmptySecretEnvFailsEarly(t *testing.T) {
+	t.Setenv("EMDAY_TEST_LARK_SECRET", "")
+	l, _ := newLark("l", &config.Notifier{Type: "lark", URL: "https://example.invalid", SecretEnv: "EMDAY_TEST_LARK_SECRET"})
+	err := l.Send(context.Background(), testEvent())
+	if err == nil || !strings.Contains(err.Error(), "EMDAY_TEST_LARK_SECRET not set") {
+		t.Fatalf("want early empty-secret error, got %v", err)
+	}
+}

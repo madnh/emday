@@ -33,6 +33,7 @@ type doctorReport struct {
 	Sources        []string         `json:"sources,omitempty"`
 	Rules          int              `json:"rules"`
 	Notifiers      []string         `json:"notifiers,omitempty"`
+	EnvMissing     []string         `json:"env_missing,omitempty"` // notifier env vars unset in THIS shell
 
 	StateExists  bool           `json:"state_exists"`
 	StateSize    int64          `json:"state_size,omitempty"`
@@ -102,8 +103,13 @@ func gatherDoctor() *doctorReport {
 		for name := range cfg.Sources {
 			rep.Sources = append(rep.Sources, name)
 		}
-		for name := range cfg.Notifiers {
+		for name, n := range cfg.Notifiers {
 			rep.Notifiers = append(rep.Notifiers, name)
+			for _, env := range []string{n.TokenEnv, n.SecretEnv} {
+				if env != "" && os.Getenv(env) == "" {
+					rep.EnvMissing = append(rep.EnvMissing, fmt.Sprintf("notifiers.%s: $%s", name, env))
+				}
+			}
 		}
 		rep.Rules = len(cfg.Rules)
 	}
@@ -183,6 +189,9 @@ func printDoctor(cmd *cobra.Command, r *doctorReport, verdict bool) {
 			}
 			for _, prob := range r.ConfigProblems {
 				p("  problem       %s", prob.String())
+			}
+			for _, miss := range r.EnvMissing {
+				p("  env ⚠         %s is not set in THIS shell (a service gets its env from the service manager, e.g. `systemctl edit emday`)", miss)
 			}
 		}
 		p("▸ Runtime")
