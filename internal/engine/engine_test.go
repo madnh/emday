@@ -116,8 +116,15 @@ func TestOnChangeRule(t *testing.T) {
 
 	waitFor(t, func() bool { return len(rec.titles()) >= 1 })
 	titles := rec.titles()
-	if len(titles) != 1 || titles[0] != "test.IP changed: 1.1.1.1 → 2.2.2.2" {
+	if len(titles) != 1 || titles[0] != "test.IP changed" {
 		t.Errorf("titles = %v", titles)
+	}
+	// the values travel as fields, not in the title
+	rec.mu.Lock()
+	fields, _ := rec.events[0]["fields"].(map[string]any)
+	rec.mu.Unlock()
+	if fields["from"] != "1.1.1.1" || fields["to"] != "2.2.2.2" {
+		t.Errorf("fields = %v", fields)
 	}
 }
 
@@ -145,10 +152,10 @@ func TestConditionForAndResolve(t *testing.T) {
 	waitFor(t, func() bool { return len(rec.titles()) == 2 })
 
 	titles := rec.titles()
-	if titles[0] != "test.cpu: value >= 90 (value: 95)" {
+	if titles[0] != "test.cpu: value >= 90" {
 		t.Errorf("fire title = %q", titles[0])
 	}
-	if titles[1] != "test.cpu: resolved (value: 50)" {
+	if titles[1] != "test.cpu: resolved" {
 		t.Errorf("resolve title = %q", titles[1])
 	}
 }

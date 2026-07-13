@@ -29,15 +29,16 @@ var (
 
 const maxIPResponse = 256 // an IP address response has no business being bigger
 
-type ipSource struct {
-	name       string
-	modes      []string
-	endpoints  map[string][]string // "v4"/"v6" -> URLs, tried in order
-	interfaces []string
-	clients    map[string]*http.Client // family-pinned HTTP clients
+// --- public-ip: asks configured HTTP endpoints "what is my IP" ---
+
+type publicIPSource struct {
+	name      string
+	modes     []string
+	endpoints map[string][]string     // "v4"/"v6" -> URLs, tried in order
+	clients   map[string]*http.Client // family-pinned HTTP clients
 }
 
-func newIPSource(name string, cfg *config.Source) *ipSource {
+func newPublicIPSource(name string, cfg *config.Source) *publicIPSource {
 	modes := cfg.Mode
 	if len(modes) == 0 {
 		modes = []string{"v4"}
@@ -67,41 +68,27 @@ func newIPSource(name string, cfg *config.Source) *ipSource {
 			},
 		}
 	}
-	return &ipSource{name: name, modes: modes, endpoints: ep, interfaces: cfg.Interfaces, clients: clients}
+	return &publicIPSource{name: name, modes: modes, endpoints: ep, clients: clients}
 }
 
-func (s *ipSource) Name() string { return s.name }
+func (s *publicIPSource) Name() string { return s.name }
 
-func (s *ipSource) Collect(ctx context.Context) ([]model.Sample, []model.Event, error) {
+func (s *publicIPSource) Collect(ctx context.Context) ([]model.Sample, []model.Event, error) {
 	now := time.Now()
 	var samples []model.Sample
 	var errs []string
 
 	for _, family := range s.modes {
-		addr, err := s.fetchPublic(ctx, family)
+		addr, err := s.fetch(ctx, family)
 		if err != nil {
-			errs = append(errs, fmt.Sprintf("public %s: %v", family, err))
+			errs = append(errs, fmt.Sprintf("%s: %v", family, err))
 			continue
 		}
 		samples = append(samples, model.Sample{
-			Metric: s.name + ".public_" + family,
+			Metric: s.name + "." + family,
 			Value:  model.StrValue(addr),
 			Time:   now,
 		})
-	}
-
-	for _, iface := range s.interfaces {
-		v4, v6, err := localAddrs(iface)
-		if err != nil {
-			errs = append(errs, fmt.Sprintf("interface %s: %v", iface, err))
-			continue
-		}
-		if v4 != "" {
-			samples = append(samples, model.Sample{Metric: s.name + ".local." + iface + "_v4", Value: model.StrValue(v4), Time: now})
-		}
-		if v6 != "" {
-			samples = append(samples, model.Sample{Metric: s.name + ".local." + iface + "_v6", Value: model.StrValue(v6), Time: now})
-		}
 	}
 
 	if len(samples) == 0 && len(errs) > 0 {
@@ -110,9 +97,9 @@ func (s *ipSource) Collect(ctx context.Context) ([]model.Sample, []model.Event, 
 	return samples, nil, nil
 }
 
-// fetchPublic tries each endpoint in order and returns the first response
-// that is exactly one valid address of the requested family.
-func (s *ipSource) fetchPublic(ctx context.Context, family string) (string, error) {
+// fetch tries each endpoint in order and returns the first response that is
+// exactly one valid address of the requested family.
+func (s *publicIPSource) fetch(ctx context.Context, family string) (string, error) {
 	var lastErr error
 	for _, endpoint := range s.endpoints[family] {
 		addr, err := s.fetchOne(ctx, family, endpoint)
@@ -128,7 +115,7 @@ func (s *ipSource) fetchPublic(ctx context.Context, family string) (string, erro
 	return "", lastErr
 }
 
-func (s *ipSource) fetchOne(ctx context.Context, family, endpoint string) (string, error) {
+func (s *publicIPSource) fetchOne(ctx context.Context, family, endpoint string) (string, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
 	if err != nil {
 		return "", err
@@ -175,6 +162,44 @@ func ValidateIP(raw, family string) (string, error) {
 		}
 	}
 	return ip.String(), nil
+}
+
+// --- local-ip: reads interface addresses from the kernel, no network calls ---
+
+type localIPSource struct {
+	name       string
+	interfaces []string
+}
+
+func newLocalIPSource(name string, cfg *config.Source) *localIPSource {
+	return &localIPSource{name: name, interfaces: cfg.Interfaces}
+}
+
+func (s *localIPSource) Name() string { return s.name }
+
+func (s *localIPSource) Collect(ctx context.Context) ([]model.Sample, []model.Event, error) {
+	now := time.Now()
+	var samples []model.Sample
+	var errs []string
+
+	for _, iface := range s.interfaces {
+		v4, v6, err := localAddrs(iface)
+		if err != nil {
+			errs = append(errs, fmt.Sprintf("%s: %v", iface, err))
+			continue
+		}
+		if v4 != "" {
+			samples = append(samples, model.Sample{Metric: s.name + "." + iface + "_v4", Value: model.StrValue(v4), Time: now})
+		}
+		if v6 != "" {
+			samples = append(samples, model.Sample{Metric: s.name + "." + iface + "_v6", Value: model.StrValue(v6), Time: now})
+		}
+	}
+
+	if len(samples) == 0 && len(errs) > 0 {
+		return nil, nil, fmt.Errorf("%s", strings.Join(errs, "; "))
+	}
+	return samples, nil, nil
 }
 
 // localAddrs returns the first global unicast v4 and v6 address of a NIC.

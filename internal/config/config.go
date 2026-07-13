@@ -56,7 +56,7 @@ type Defaults struct {
 // Source is one collector instance. Type-specific fields are flattened;
 // only the ones matching Type are consulted.
 type Source struct {
-	Type     string   `yaml:"type"` // ip | cpu | memory | disk | process | exec
+	Type     string   `yaml:"type"` // public-ip | local-ip | cpu | memory | disk | process | exec
 	Interval Duration `yaml:"interval"`
 	Notify   []string `yaml:"notify"` // targets for NOTIFY_* directives (exec)
 

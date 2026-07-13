@@ -10,9 +10,10 @@ documentation outside this binary.
     sources ──samples──▶ rules ──events──▶ notifiers
     (collect metrics)    (decide)          (deliver, queued+retried)
 
-- A **source** collects metrics on an interval: built-ins `ip` (public IP via
-  user-configured endpoints, strictly validated IPv4/IPv6), `cpu`, `memory`,
-  `disk`, `process`, and `exec` (any script).
+- A **source** collects metrics on an interval: built-ins `public-ip` (via
+  user-configured endpoints, strictly validated IPv4/IPv6), `local-ip` (NIC
+  addresses from the kernel), `cpu`, `memory`, `disk`, `process`, and `exec`
+  (any script).
 - A **rule** watches one metric: `on_change: true` fires on any change;
   `condition: "value >= 90"` (expression over `value`) with optional `for: 5m`
   (must hold continuously) fires an alert and later a "resolved" event.

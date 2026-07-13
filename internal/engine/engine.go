@@ -208,12 +208,14 @@ func (e *Engine) evalOnChange(r *compiledRule, s model.Sample, now time.Time) {
 	if !existed || prev.Value.Equal(s.Value) {
 		return
 	}
+	// Title carries the kind of event; the values live in Fields, which
+	// every provider renders in the message body.
 	e.dispatch(model.Event{
 		Source: "rule/" + s.Metric,
 		Level:  model.Level(r.cfg.Level),
-		Title:  fmt.Sprintf("%s changed: %s → %s", s.Metric, prev.Value.String(), s.Value.String()),
+		Title:  s.Metric + " changed",
 		Time:   now,
-		Fields: map[string]string{"previous": prev.Value.String(), "current": s.Value.String()},
+		Fields: map[string]string{"from": prev.Value.String(), "to": s.Value.String()},
 	}, r.cfg.Notify)
 }
 
@@ -248,9 +250,9 @@ func (e *Engine) evalCondition(r *compiledRule, s model.Sample, now time.Time) {
 			e.dispatch(model.Event{
 				Source: "rule/" + s.Metric,
 				Level:  model.Level(r.cfg.Level),
-				Title:  fmt.Sprintf("%s: %s (value: %s)", s.Metric, r.cfg.Condition, s.Value.String()),
+				Title:  fmt.Sprintf("%s: %s", s.Metric, r.cfg.Condition),
 				Time:   now,
-				Fields: map[string]string{"value": s.Value.String(), "condition": r.cfg.Condition},
+				Fields: map[string]string{"value": s.Value.String()},
 			}, r.cfg.Notify)
 		}
 		return
@@ -272,9 +274,10 @@ func (e *Engine) evalCondition(r *compiledRule, s model.Sample, now time.Time) {
 			e.dispatch(model.Event{
 				Source:   "rule/" + s.Metric,
 				Level:    model.LevelInfo,
-				Title:    fmt.Sprintf("%s: resolved (value: %s)", s.Metric, s.Value.String()),
+				Title:    s.Metric + ": resolved",
 				Time:     now,
 				Resolved: true,
+				Fields:   map[string]string{"value": s.Value.String()},
 			}, r.cfg.Notify)
 		}
 		rs.NotifiedFiring = false
@@ -293,8 +296,9 @@ func (e *Engine) fireOnChangeForAbsent(metric string, prev *state.MetricState, n
 		e.dispatch(model.Event{
 			Source: "rule/" + metric,
 			Level:  model.Level(r.cfg.Level),
-			Title:  fmt.Sprintf("%s disappeared (was: %s)", metric, prevStr),
+			Title:  metric + " disappeared",
 			Time:   now,
+			Fields: map[string]string{"was": prevStr},
 		}, r.cfg.Notify)
 	}
 }

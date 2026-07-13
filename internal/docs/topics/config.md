@@ -41,15 +41,18 @@ which directory resolved and why.
       interval: 1m              # default source interval
 
     sources:
-      ip:
-        type: ip
-        interval: 1m
+      wan:
+        type: public-ip         # -> metrics wan.v4 (and wan.v6)
+        interval: 5m
         mode: [v4]              # v4, v6, or both
         endpoints_v4:           # where to ask "what is my IP" — YOUR choice,
           - https://api.ipify.org        # tried in order until one returns
           - https://checkip.amazonaws.com # a valid bare IPv4 address
         # endpoints_v6: [...]   # same for IPv6 (used when mode includes v6)
-        # interfaces: [eth0]    # also report local NIC addresses
+      lan:
+        type: local-ip          # -> metrics lan.eth0_v4 (and _v6)
+        interval: 30s           # kernel read, no network calls — cheap
+        interfaces: [eth0]
       cpu:
         type: cpu               # metrics: cpu.percent, cpu.load1/5/15
         interval: 30s
@@ -68,7 +71,7 @@ which directory resolved and why.
         notify: [my-telegram]
 
     rules:                      # see `emday docs conditions`
-      - metric: ip.public_v4
+      - metric: wan.v4
         on_change: true
         notify: [my-telegram]
       - metric: cpu.percent
@@ -82,7 +85,7 @@ which directory resolved and why.
         token_env: EMDAY_TG_TOKEN
         chat_id: "-100123456"
 
-The ip source accepts responses ONLY when the entire body is one valid
+The public-ip source accepts responses ONLY when the entire body is one valid
 address of the requested family — an endpoint returning HTML or an error
 page is skipped, never mistaken for an IP change.
 

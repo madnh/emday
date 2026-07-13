@@ -20,8 +20,10 @@ type Source interface {
 // unsupported on this platform (callers disable them with a warning).
 func New(name string, cfg *config.Source, tmpDir string) (Source, error) {
 	switch cfg.Type {
-	case "ip":
-		return newIPSource(name, cfg), nil
+	case "public-ip":
+		return newPublicIPSource(name, cfg), nil
+	case "local-ip":
+		return newLocalIPSource(name, cfg), nil
 	case "cpu":
 		return newCPUSource(name), nil
 	case "memory":

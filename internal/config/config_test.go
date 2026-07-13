@@ -236,3 +236,34 @@ defaults: {cooldown: bogus}
 		t.Fatalf("bogus duration must fail with a clear error, got %v", err)
 	}
 }
+
+// The `ip` type was split in v0.1.1 — old configs must get a directive
+// migration message, and cross-type field misuse must be caught.
+func TestIPSourceSplit(t *testing.T) {
+	dir := writeConfig(t, `
+version: 1
+sources:
+  old: {type: ip}
+  lan: {type: local-ip, mode: [v4]}
+  wan: {type: public-ip, interfaces: [eth0]}
+notifiers: {}
+`)
+	cfg, err := Load(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	joined := ""
+	for _, p := range cfg.Validate() {
+		joined += p.String() + "\n"
+	}
+	for _, want := range []string{
+		"was split in v0.1.1",            // migration hint for type: ip
+		"local-ip needs `interfaces`",    // lan lacks interfaces
+		"belong to a `public-ip` source", // lan has mode
+		"belongs to a `local-ip` source", // wan has interfaces
+	} {
+		if !strings.Contains(joined, want) {
+			t.Errorf("missing %q in:\n%s", want, joined)
+		}
+	}
+}

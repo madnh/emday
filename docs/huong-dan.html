@@ -97,17 +97,25 @@ Cấu trúc gồm 3 khối: <strong>sources</strong> (thu thập gì) → <stron
 
 <h3>3.1. Theo dõi IP public (use case gốc)</h3>
 <pre><code>sources:
-  ip:
-    type: ip
-    interval: 1m
+  wan:
+    type: public-ip               # IP public → metric wan.v4
+    interval: 5m
     mode: [v4]                    # thêm "v6" nếu cần IPv6
     endpoints_v4:                 # nơi hỏi "IP của tôi là gì" — bạn tự chọn,
       - https://api.ipify.org     # thử lần lượt tới khi có kết quả hợp lệ
       - https://checkip.amazonaws.com
 
+  lan:
+    type: local-ip                # IP LAN của card mạng → metric lan.eth0_v4
+    interval: 30s                 # đọc từ kernel, không gọi mạng
+    interfaces: [eth0]            # xem tên card: ip -br addr
+
 rules:
-  - metric: ip.public_v4
-    on_change: true               # báo mỗi khi IP đổi
+  - metric: wan.v4
+    on_change: true               # báo mỗi khi IP public đổi
+    notify: [tele]
+  - metric: lan.eth0_v4
+    on_change: true               # báo khi IP LAN đổi
     notify: [tele]</code></pre>
 <p>emday chỉ chấp nhận response là <strong>đúng một địa chỉ IP hợp lệ</strong> — endpoint trả về
 HTML hay trang lỗi sẽ bị bỏ qua và thử endpoint kế tiếp, không bao giờ bị nhầm thành "IP đổi".</p>

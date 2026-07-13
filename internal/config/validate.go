@@ -10,7 +10,8 @@ import (
 )
 
 var sourceTypes = map[string]bool{
-	"ip": true, "cpu": true, "memory": true, "disk": true, "process": true, "exec": true,
+	"public-ip": true, "local-ip": true,
+	"cpu": true, "memory": true, "disk": true, "process": true, "exec": true,
 }
 
 var notifierTypes = map[string]bool{
@@ -41,6 +42,10 @@ func (c *Config) Validate() []Problem {
 	}
 	for name, s := range c.Sources {
 		where := "sources." + name
+		if s.Type == "ip" {
+			add(where, "type `ip` was split in v0.1.1: use `local-ip` (with interfaces) and/or `public-ip` (with mode/endpoints) — see `emday docs config`")
+			continue
+		}
 		if !sourceTypes[s.Type] {
 			add(where, "unknown type %q (see `emday docs config`)", s.Type)
 			continue
@@ -53,7 +58,7 @@ func (c *Config) Validate() []Problem {
 				add(where, "parse must be omitted (output file) or \"stdout\", got %q", s.Parse)
 			}
 		}
-		if s.Type == "ip" {
+		if s.Type == "public-ip" {
 			for _, m := range s.Mode {
 				if m != "v4" && m != "v6" {
 					add(where, "mode entries must be \"v4\" or \"v6\", got %q", m)
@@ -63,6 +68,17 @@ func (c *Config) Validate() []Problem {
 				if parsed, err := url.Parse(u); err != nil || (parsed.Scheme != "http" && parsed.Scheme != "https") {
 					add(where, "endpoint %q is not a valid http(s) URL", u)
 				}
+			}
+			if len(s.Interfaces) > 0 {
+				add(where, "`interfaces` belongs to a `local-ip` source, not public-ip")
+			}
+		}
+		if s.Type == "local-ip" {
+			if len(s.Interfaces) == 0 {
+				add(where, "local-ip needs `interfaces` (e.g. [eth0])")
+			}
+			if len(s.Mode) > 0 || len(s.EndpointsV4) > 0 || len(s.EndpointsV6) > 0 {
+				add(where, "`mode`/`endpoints_*` belong to a `public-ip` source, not local-ip")
 			}
 		}
 		for _, target := range s.Notify {

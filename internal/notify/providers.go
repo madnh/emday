@@ -70,7 +70,7 @@ func newWebhook(name string, cfg *config.Notifier) (*webhook, error) {
 	}
 	body := cfg.BodyTemplate
 	if body == "" {
-		body = `{"level": {{json .Level}}, "title": {{json .Title}}, "message": {{json .Message}}, "source": {{json .Source}}, "host": {{json .Hostname}}, "time": {{json .Time}}, "resolved": {{.Resolved}}}`
+		body = `{"level": {{json .Level}}, "title": {{json .Title}}, "message": {{json .Message}}, "fields": {{json .Fields}}, "source": {{json .Source}}, "host": {{json .Hostname}}, "time": {{json .Time}}, "resolved": {{.Resolved}}}`
 	}
 	tmpl, err := template.New(name).Funcs(template.FuncMap{
 		"json": func(v any) (string, error) {
@@ -128,6 +128,9 @@ func (t *telegram) Send(ctx context.Context, e model.Event) error {
 	if e.Message != "" {
 		text += "\n" + html.EscapeString(e.Message)
 	}
+	for _, k := range sortedFieldKeys(e.Fields) {
+		text += fmt.Sprintf("\n%s: <code>%s</code>", html.EscapeString(k), html.EscapeString(e.Fields[k]))
+	}
 	text += fmt.Sprintf("\n<code>%s · %s · %s</code>",
 		html.EscapeString(hostname()), html.EscapeString(e.Source), e.Time.Format("2006-01-02 15:04:05"))
 	payload, _ := json.Marshal(map[string]any{
@@ -159,6 +162,12 @@ func (n *ntfy) Name() string { return n.name }
 
 func (n *ntfy) Send(ctx context.Context, e model.Event) error {
 	body := e.Message
+	for _, k := range sortedFieldKeys(e.Fields) {
+		if body != "" {
+			body += "\n"
+		}
+		body += k + ": " + e.Fields[k]
+	}
 	if body == "" {
 		body = e.Title
 	}
@@ -234,6 +243,9 @@ func (l *lark) Send(ctx context.Context, e model.Event) error {
 	fields := []any{
 		larkField(true, "**Host**\n"+hostname()),
 		larkField(true, "**Source**\n"+e.Source),
+	}
+	for _, k := range sortedFieldKeys(e.Fields) {
+		fields = append(fields, larkField(true, "**"+k+"**\n"+e.Fields[k]))
 	}
 	if e.Message != "" {
 		fields = append(fields, larkField(false, "**Detail**\n"+e.Message))

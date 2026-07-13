@@ -30,7 +30,7 @@ Rule fields around the condition:
         level: warn        # info | warn | error (default warn)
         notify: [my-telegram]
 
-      - metric: ip.public_v4
+      - metric: wan.v4
         on_change: true    # alert whenever the value changes (no condition)
         notify: [my-telegram]
 

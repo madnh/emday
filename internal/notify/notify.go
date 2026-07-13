@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"sort"
 	"strings"
 	"time"
 
@@ -49,8 +50,22 @@ func RenderText(e model.Event) string {
 	if e.Message != "" {
 		fmt.Fprintf(&b, "\n%s", e.Message)
 	}
+	for _, k := range sortedFieldKeys(e.Fields) {
+		fmt.Fprintf(&b, "\n%s: %s", k, e.Fields[k])
+	}
 	fmt.Fprintf(&b, "\n— %s · %s · %s", hostname(), e.Source, e.Time.Format("2006-01-02 15:04:05"))
 	return b.String()
+}
+
+// sortedFieldKeys orders event fields deterministically, with the
+// change-detection pair kept in reading order (from before to).
+func sortedFieldKeys(fields map[string]string) []string {
+	keys := make([]string, 0, len(fields))
+	for k := range fields {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys) // "from" < "to" < "value" < "was" — reading order for free
+	return keys
 }
 
 // secret resolves the telegram token: prefer the env var over the inline value.

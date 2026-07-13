@@ -145,7 +145,7 @@ footer a { color: var(--muted); }
     <div class="who"><img src="logo.png" alt=""> emday @ prod-sg-01 <span class="dot" aria-hidden="true"></span></div>
     <div class="bubble">👋 em đây! Public IP changed:<br>
       <code>113.161.72.9 → 118.69.37.55</code>
-      <span class="meta">rule/ip.public_v4 · 07:02</span></div>
+      <span class="meta">rule/wan.v4 · 07:02</span></div>
     <div class="bubble warn">⚠️ cpu.percent: value ≥ 90 held for 5m<br>
       <code>value: 96.4</code>
       <span class="meta">rule/cpu.percent · 14:31</span></div>
@@ -196,17 +196,18 @@ which config resolved, what failed, and the next step — without touching anyth
 <pre><code>version: 1
 
 sources:
-  ip:
-    type: ip
+  wan:
+    type: public-ip
     mode: [v4]
     endpoints_v4:              # where to ask "what is my IP" — your choice
       - https://api.ipify.org
       - https://checkip.amazonaws.com
+  lan:  {type: local-ip, interfaces: [eth0]}
   cpu:  {type: cpu, interval: 30s}
   disk: {type: disk, mounts: {root: "/"}}
 
 rules:
-  - metric: ip.public_v4
+  - metric: wan.v4
     on_change: true            # "em đây, new IP!"
     notify: [my-telegram]
   - metric: cpu.percent

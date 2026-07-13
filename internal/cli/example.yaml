@@ -9,9 +9,9 @@ defaults:
 sources:
   # Public IP — the original emday use case. Endpoints are YOUR choice;
   # each is tried in order and its response must be a bare, valid address.
-  ip:
-    type: ip
-    interval: 1m
+  wan:
+    type: public-ip                  # -> metric wan.v4
+    interval: 5m
     mode: [v4]                       # add "v6" to also track IPv6
     endpoints_v4:
       - https://api.ipify.org
@@ -19,7 +19,12 @@ sources:
       - https://checkip.amazonaws.com
     # endpoints_v6:
     #   - https://api6.ipify.org
-    # interfaces: [eth0]             # also report local NIC addresses
+
+  # LAN address of a NIC — read from the kernel, no network calls:
+  # lan:
+  #   type: local-ip                 # -> metric lan.eth0_v4
+  #   interval: 30s
+  #   interfaces: [eth0]
 
   cpu:
     type: cpu                        # cpu.percent, cpu.load1/5/15
@@ -50,7 +55,7 @@ sources:
 
 rules:
   # on_change: alert whenever the value changes ("em đây, IP mới nè")
-  - metric: ip.public_v4
+  - metric: wan.v4
     on_change: true
     notify: [my-telegram]
 
