@@ -119,6 +119,47 @@ notifiers:
 	}
 }
 
+// Born from a real incident: a pasted secret in secret_env silently sent
+// unsigned Lark messages. check-config must catch it; real env names must pass.
+func TestSecretValuePastedIntoEnvField(t *testing.T) {
+	dir := writeConfig(t, `
+version: 1
+sources:
+  cpu: {type: cpu}
+notifiers:
+  lark:
+    type: lark
+    url: "https://open.larksuite.com/x"
+    secret_env: LB7KiBoqCvWfbE9c8Gvy8
+  tg:
+    type: telegram
+    token_env: EMDAY_TG_TOKEN
+    chat_id: "1"
+`)
+	cfg, err := Load(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	probs := cfg.Validate()
+	found := false
+	for _, p := range probs {
+		if strings.Contains(p.Msg, "looks like a secret value") {
+			if !strings.Contains(p.Where, "lark") {
+				t.Errorf("flagged the wrong notifier: %s", p.Where)
+			}
+			found = true
+		}
+	}
+	if !found {
+		t.Errorf("pasted secret in secret_env not caught; problems: %v", probs)
+	}
+	for _, p := range probs {
+		if strings.Contains(p.Where, "tg") && strings.Contains(p.Msg, "secret value") {
+			t.Errorf("EMDAY_TG_TOKEN is a legit env name, must not be flagged: %v", p)
+		}
+	}
+}
+
 func TestConditionCompileAndEval(t *testing.T) {
 	cases := []struct {
 		cond  string

@@ -41,7 +41,9 @@ tag emoji shown before the title.
       my-lark:
         type: lark
         url: https://open.larksuite.com/open-apis/bot/v2/hook/...   # or open.feishu.cn
-        secret_env: EMDAY_LARK_SECRET   # only if the bot has "signature" enabled
+        secret_env: EMDAY_LARK_SECRET   # NAME of the env var holding the secret
+        # — or put the secret itself inline (config file should be root:0600):
+        # secret: "xxxxxxxxxxxx"
 
 In the group: Settings → Bots → Add bot → Custom bot; copy the webhook URL.
 If you enabled the signature option, put the secret in `secret_env` — emday

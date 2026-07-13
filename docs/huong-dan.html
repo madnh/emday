@@ -157,7 +157,9 @@ Nếu bot bật chế độ chữ ký (signature) thì khai thêm <code>secret_e
   lark:
     type: lark
     url: https://open.larksuite.com/open-apis/bot/v2/hook/xxxx
-    secret_env: EMDAY_LARK_SECRET # chỉ cần khi bot bật signature</code></pre>
+    secret_env: EMDAY_LARK_SECRET   # TÊN biến env chứa secret (không phải giá trị secret!)
+    # — hoặc ghi thẳng secret (file config nên là root, chmod 600):
+    # secret: "xxxxxxxxxxxx"</code></pre>
 <p><strong>ntfy</strong> — nhận push lên điện thoại không cần đăng ký, chỉ cần đặt topic khó đoán:</p>
 <pre><code>notifiers:
   phone:

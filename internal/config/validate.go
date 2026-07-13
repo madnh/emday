@@ -3,6 +3,7 @@ package config
 import (
 	"fmt"
 	"net/url"
+	"strings"
 
 	"github.com/expr-lang/expr"
 	"github.com/expr-lang/expr/vm"
@@ -102,6 +103,12 @@ func (c *Config) Validate() []Problem {
 
 	for name, n := range c.Notifiers {
 		where := "notifiers." + name
+		for field, val := range map[string]string{"token_env": n.TokenEnv, "secret_env": n.SecretEnv} {
+			if looksLikeSecretValue(val) {
+				add(where, "%s must be the NAME of an environment variable (e.g. EMDAY_LARK_SECRET), but %q looks like a secret value itself — either export it under a name and reference that, or use `%s:` for an inline value",
+					field, val, strings.TrimSuffix(field, "_env"))
+			}
+		}
 		switch n.Type {
 		case "webhook":
 			if n.URL == "" {
@@ -136,6 +143,28 @@ func (c *Config) Validate() []Problem {
 	}
 
 	return probs
+}
+
+// looksLikeSecretValue guesses whether a *_env field holds a pasted secret
+// instead of an env var name. Env var names are conventionally UPPER_SNAKE;
+// tokens tend to be long, mixed-case, digit-bearing, and underscore-free.
+// (Born from a real incident: `secret_env: LB7Ki...` → silent unsigned sends.)
+func looksLikeSecretValue(v string) bool {
+	if len(v) < 16 || strings.Contains(v, "_") {
+		return false
+	}
+	var hasLower, hasUpper, hasDigit bool
+	for _, r := range v {
+		switch {
+		case r >= 'a' && r <= 'z':
+			hasLower = true
+		case r >= 'A' && r <= 'Z':
+			hasUpper = true
+		case r >= '0' && r <= '9':
+			hasDigit = true
+		}
+	}
+	return hasLower && hasUpper && hasDigit
 }
 
 // CompileCondition compiles a rule expression. The only variable is `value`.
