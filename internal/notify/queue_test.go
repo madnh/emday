@@ -18,10 +18,6 @@ import (
 // TestQueuePersistsAcrossOutage: an event enqueued while the target is down
 // stays on disk and is delivered once the target comes back.
 func TestQueuePersistsAcrossOutage(t *testing.T) {
-	oldMin, oldMax := retryMin, retryMax
-	retryMin, retryMax = 20*time.Millisecond, 50*time.Millisecond
-	defer func() { retryMin, retryMax = oldMin, oldMax }()
-
 	var mu sync.Mutex
 	up := false
 	var got []string
@@ -47,6 +43,8 @@ func TestQueuePersistsAcrossOutage(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	// shrink backoff BEFORE Run starts — no goroutine reads it yet
+	queue.retryMin, queue.retryMax = 20*time.Millisecond, 50*time.Millisecond
 
 	ev := model.Event{Source: "test", Level: model.LevelInfo, Title: "queued while down", Time: time.Now()}
 	if err := queue.Enqueue("hook", ev); err != nil {

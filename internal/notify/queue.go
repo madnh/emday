@@ -15,12 +15,10 @@ import (
 	"github.com/madnh/emday/internal/model"
 )
 
-const maxQueuedPerNotifier = 1000
-
-// vars (not consts) so tests can shrink the retry timing
-var (
-	retryMin = 15 * time.Second
-	retryMax = 5 * time.Minute
+const (
+	maxQueuedPerNotifier = 1000
+	defaultRetryMin      = 15 * time.Second
+	defaultRetryMax      = 5 * time.Minute
 )
 
 // Queue persists events per notifier and retries delivery with backoff, so
@@ -31,10 +29,20 @@ type Queue struct {
 	seq       atomic.Uint64
 	wake      chan struct{}
 	wg        sync.WaitGroup
+
+	// retry backoff bounds; set before Run starts (tests shrink them)
+	retryMin time.Duration
+	retryMax time.Duration
 }
 
 func NewQueue(dir string, notifiers map[string]Notifier) (*Queue, error) {
-	q := &Queue{dir: dir, notifiers: notifiers, wake: make(chan struct{}, 1)}
+	q := &Queue{
+		dir:       dir,
+		notifiers: notifiers,
+		wake:      make(chan struct{}, 1),
+		retryMin:  defaultRetryMin,
+		retryMax:  defaultRetryMax,
+	}
 	for name := range notifiers {
 		if err := os.MkdirAll(q.notifierDir(name), 0o700); err != nil {
 			return nil, err
@@ -90,7 +98,7 @@ func (q *Queue) Run(ctx context.Context) {
 }
 
 func (q *Queue) drainLoop(ctx context.Context, name string, n Notifier) {
-	backoff := retryMin
+	backoff := q.retryMin
 	for {
 		delivered, err := q.drainOnce(ctx, name, n)
 		if ctx.Err() != nil {
@@ -103,10 +111,10 @@ func (q *Queue) drainLoop(ctx context.Context, name string, n Notifier) {
 				return
 			case <-time.After(backoff):
 			}
-			backoff = min(backoff*2, retryMax)
+			backoff = min(backoff*2, q.retryMax)
 			continue
 		}
-		backoff = retryMin
+		backoff = q.retryMin
 		if delivered == 0 {
 			select {
 			case <-ctx.Done():
