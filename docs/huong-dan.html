@@ -1,0 +1,262 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<meta name="description" content="Hướng dẫn cài đặt và sử dụng emday trên server Linux — theo dõi IP, CPU, RAM, ổ cứng và gửi thông báo qua Telegram, Lark, ntfy.">
+<link rel="icon" type="image/png" href="favicon.png">
+<title>emday — Hướng dẫn sử dụng (tiếng Việt)</title>
+<style>
+:root {
+  color-scheme: light dark;
+  --bg: light-dark(#fbfaf8, #101418);
+  --surface: light-dark(#f3f1ed, #1a2027);
+  --text: light-dark(#1f2933, #d7dee4);
+  --muted: light-dark(#68737d, #8a97a3);
+  --accent: light-dark(#0b7285, #53d6e8);
+  --accent-soft: light-dark(#e3f2f5, #12333c);
+  --coral: light-dark(#e05d49, #ff8b76);
+  --border: light-dark(#e4e1db, #2a323c);
+  --code-bg: light-dark(#f1efeb, #171d24);
+  --mono: ui-monospace, "SF Mono", "Cascadia Code", Menlo, Consolas, monospace;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text);
+  font: 16px/1.7 ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; }
+:focus-visible { outline: 2px solid var(--coral); outline-offset: 2px; border-radius: 2px; }
+main { max-width: 46rem; margin: 0 auto; padding: 2.5rem 1.25rem 5rem; }
+h1 { font-family: var(--mono); font-size: 2rem; letter-spacing: -0.035em; margin-bottom: 0.3rem; }
+h1 span { color: var(--accent); }
+p.lead { color: var(--muted); font-size: 1.05rem; margin-top: 0; }
+h2 { font-family: var(--mono); letter-spacing: -0.02em; margin-top: 2.8rem; font-size: 1.3rem; }
+h2 .n { color: var(--coral); }
+h3 { margin-top: 1.8rem; font-size: 1.1rem; }
+a { color: var(--accent); }
+pre { background: var(--code-bg); border: 1px solid var(--border); border-radius: 8px;
+  padding: 0.9rem 1.1rem; overflow-x: auto; font-size: 0.88rem; line-height: 1.55; }
+code { font-family: var(--mono); }
+p code, li code, td code { background: var(--code-bg); border-radius: 4px; padding: 0.1em 0.35em; font-size: 0.88em; }
+table { border-collapse: collapse; width: 100%; font-size: 0.92rem; display: block; overflow-x: auto; }
+th, td { text-align: left; border: 1px solid var(--border); padding: 0.45rem 0.7rem; }
+th { background: var(--surface); font-family: var(--mono); font-size: 0.85rem; }
+.tip { background: var(--accent-soft); border-radius: 8px; padding: 0.8rem 1.1rem; font-size: 0.95rem; margin: 1rem 0; }
+nav.crumbs { font-size: 0.9rem; margin-bottom: 2rem; }
+nav.crumbs a { font-family: var(--mono); text-decoration: none; }
+footer { margin-top: 4rem; padding-top: 1.5rem; border-top: 1px solid var(--border);
+  color: var(--muted); font-size: 0.9rem; text-align: center; }
+footer a { color: var(--muted); }
+ol li, ul li { margin: 0.3rem 0; }
+</style>
+</head>
+<body>
+<main>
+
+<nav class="crumbs"><a href="index.html">← emday</a></nav>
+
+<h1>Hướng dẫn sử dụng <span>em</span>day</h1>
+<p class="lead">Cài đặt và vận hành emday trên server Linux: theo dõi IP public, CPU, RAM,
+ổ cứng, process và script tuỳ ý — nhận thông báo qua Telegram, Lark, ntfy, Slack, Discord.</p>
+
+<p>Tên gọi: khi server đổi IP, emday nhắn cho bạn — <em>“em đây, IP mới nè!”</em> 😉</p>
+
+<h2 id="cai-dat"><span class="n">1.</span> Cài đặt</h2>
+<p>Tải binary cho Linux từ <a href="https://github.com/madnh/emday/releases/latest">bản release mới nhất</a>
+(chọn <code>linux_amd64</code> hoặc <code>linux_arm64</code> tuỳ máy — xem bằng <code>uname -m</code>):</p>
+<pre><code># thay VERSION bằng phiên bản thực tế, ví dụ 0.1.0
+curl -fsSL -o emday.tar.gz \
+  https://github.com/madnh/emday/releases/download/vVERSION/emday_VERSION_linux_amd64.tar.gz
+tar -xzf emday.tar.gz emday
+sudo install -m 0755 emday /usr/local/bin/emday
+emday version</code></pre>
+<p>Chỉ cần đúng một file binary — không phải cài thêm gì khác.</p>
+
+<h2 id="khoi-tao"><span class="n">2.</span> Khởi tạo cấu hình</h2>
+<pre><code>sudo emday init</code></pre>
+<p>Chạy bằng <code>sudo</code>, emday tạo thư mục <code>/etc/emday</code> chứa toàn bộ những gì nó cần:</p>
+<pre><code>/etc/emday/
+├── emday.yaml     # file cấu hình (file DUY NHẤT bạn sửa)
+├── config.md      # tài liệu cấu hình, sinh tự động
+├── state.json     # bộ nhớ của engine (emday tự quản — đừng sửa)
+├── queue/         # thông báo chưa gửi được (tự quản)
+└── tmp/           # chỗ tạm cho exec script (tự quản)</code></pre>
+<div class="tip">💡 <code>init</code> là lệnh <strong>duy nhất</strong> tạo thư mục cấu hình, và nó
+từ chối ghi đè thư mục đã có. Mọi lệnh khác báo lỗi rõ ràng khi chưa init — không bao giờ
+âm thầm tạo dữ liệu sai chỗ.</div>
+
+<h2 id="cau-hinh"><span class="n">3.</span> Cấu hình</h2>
+<p>Mở <code>/etc/emday/emday.yaml</code> — file mẫu có sẵn comment giải thích từng phần.
+Cấu trúc gồm 3 khối: <strong>sources</strong> (thu thập gì) → <strong>rules</strong> (khi nào báo)
+→ <strong>notifiers</strong> (báo đi đâu).</p>
+
+<h3>3.1. Theo dõi IP public (use case gốc)</h3>
+<pre><code>sources:
+  ip:
+    type: ip
+    interval: 1m
+    mode: [v4]                    # thêm "v6" nếu cần IPv6
+    endpoints_v4:                 # nơi hỏi "IP của tôi là gì" — bạn tự chọn,
+      - https://api.ipify.org     # thử lần lượt tới khi có kết quả hợp lệ
+      - https://checkip.amazonaws.com
+
+rules:
+  - metric: ip.public_v4
+    on_change: true               # báo mỗi khi IP đổi
+    notify: [tele]</code></pre>
+<p>emday chỉ chấp nhận response là <strong>đúng một địa chỉ IP hợp lệ</strong> — endpoint trả về
+HTML hay trang lỗi sẽ bị bỏ qua và thử endpoint kế tiếp, không bao giờ bị nhầm thành "IP đổi".</p>
+
+<h3>3.2. Ngưỡng CPU / RAM / ổ cứng</h3>
+<pre><code>sources:
+  cpu:    {type: cpu, interval: 30s}
+  memory: {type: memory}
+  disk:
+    type: disk
+    interval: 5m
+    mounts: {root: "/", data: "/data"}
+
+rules:
+  - metric: cpu.percent
+    condition: "value >= 90"      # biểu thức trên biến `value`
+    for: 5m                       # phải cao liên tục 5 phút mới báo (chống nhiễu)
+    notify: [tele]
+  - metric: disk.root.percent
+    condition: "value >= 90"
+    level: error
+    notify: [tele]</code></pre>
+<p>Khi hết vượt ngưỡng, emday tự gửi thông báo <strong>resolved</strong> ✅.
+Bảng cú pháp điều kiện:</p>
+<table>
+<tr><th>Muốn</th><th>Viết</th></tr>
+<tr><td>So sánh số</td><td><code>value &gt; 90</code>, <code>value &lt;= 10</code>, <code>value == 0</code></td></tr>
+<tr><td>So sánh chuỗi</td><td><code>value == "failed"</code>, <code>value != "ok"</code></td></tr>
+<tr><td>Chứa / bắt đầu / kết thúc</td><td><code>value contains "err"</code>, <code>value startsWith "eth"</code></td></tr>
+<tr><td>Thuộc danh sách</td><td><code>value in ["a", "b"]</code>, <code>value not in ["ok"]</code></td></tr>
+<tr><td>Kết hợp</td><td><code>... and ...</code>, <code>... or ...</code>, <code>not (...)</code></td></tr>
+</table>
+<p>Thử cú pháp ngay không cần sửa config:</p>
+<pre><code>emday test-rule 'value >= 90' --value 95        # in ra: true
+emday test-rule 'value not in ["ok"]' --value failed</code></pre>
+
+<h3>3.3. Đích thông báo</h3>
+<p><strong>Telegram</strong> — tạo bot với @BotFather, thêm bot vào group, lấy chat id:</p>
+<pre><code>notifiers:
+  tele:
+    type: telegram
+    token_env: EMDAY_TG_TOKEN     # token nằm trong biến môi trường (xem mục 4)
+    chat_id: "-100123456"</code></pre>
+<p><strong>Lark</strong> — trong group: Settings → Bots → Add bot → Custom bot, copy webhook URL.
+Nếu bot bật chế độ chữ ký (signature) thì khai thêm <code>secret_env</code>:</p>
+<pre><code>notifiers:
+  lark:
+    type: lark
+    url: https://open.larksuite.com/open-apis/bot/v2/hook/xxxx
+    secret_env: EMDAY_LARK_SECRET # chỉ cần khi bot bật signature</code></pre>
+<p><strong>ntfy</strong> — nhận push lên điện thoại không cần đăng ký, chỉ cần đặt topic khó đoán:</p>
+<pre><code>notifiers:
+  phone:
+    type: ntfy
+    url: https://ntfy.sh/ten-topic-bi-mat-cua-ban</code></pre>
+<p>Ngoài ra còn <code>slack</code>, <code>discord</code>, và <code>webhook</code> (tuỳ biến hoàn toàn) —
+xem <code>emday docs notifiers</code>.</p>
+
+<h3>3.4. Kiểm tra trước khi chạy</h3>
+<pre><code>emday check-config              # validate config + compile mọi điều kiện
+export EMDAY_TG_TOKEN=xxxx      # tạm thời, để test
+emday test-notify tele          # gửi thử một tin — kiểm tra điện thoại!</code></pre>
+
+<h2 id="service"><span class="n">4.</span> Chạy như service (systemd)</h2>
+<pre><code>sudo emday install
+sudo emday start
+emday status                    # running</code></pre>
+<p>emday tự đăng ký vào systemd. Nếu notifier dùng biến môi trường
+(<code>token_env</code>, <code>secret_env</code>), khai báo cho service như sau:</p>
+<pre><code>sudo systemctl edit emday</code></pre>
+<pre><code># nội dung override:
+[Service]
+Environment=EMDAY_TG_TOKEN=123456:ABC-token-cua-bot
+Environment=EMDAY_LARK_SECRET=xxxx</code></pre>
+<pre><code>sudo systemctl restart emday</code></pre>
+<div class="tip">💡 Muốn chạy thử trước khi cài service: <code>sudo emday run</code>
+(chạy foreground, log ra màn hình, Ctrl-C để dừng).</div>
+
+<h2 id="script"><span class="n">5.</span> Mở rộng bằng script của bạn</h2>
+<p>Bất kỳ script nào cũng thành nguồn dữ liệu: ghi <code>KEY=VALUE</code> vào file
+<code>$EMDAY_OUTPUT</code> (giống <code>$GITHUB_OUTPUT</code> của GitHub Actions).
+stdout để log thoải mái, không bị parse.</p>
+<pre><code>#!/bin/sh
+# /opt/scripts/check-backup.sh
+age=$(( ($(date +%s) - $(stat -c %Y /backup/latest.tar.gz)) / 3600 ))
+echo "BACKUP_AGE_HOURS=$age" >> "$EMDAY_OUTPUT"
+
+# logic đặc thù chỉ script này hiểu → tự bắn thông báo trực tiếp:
+if [ "$age" -gt 26 ] &amp;&amp; [ -f /backup/.full-day ]; then
+  echo "NOTIFY_ERROR=Full backup quá hạn (${age}h)" >> "$EMDAY_OUTPUT"
+fi</code></pre>
+<pre><code>sources:
+  backup:
+    type: exec
+    command: /opt/scripts/check-backup.sh
+    interval: 5m
+    timeout: 30s
+    notify: [tele]              # đích cho các dòng NOTIFY_*
+
+rules:
+  - metric: backup.BACKUP_AGE_HOURS
+    condition: "value > 24"
+    notify: [tele]
+  - metric: backup._ok          # script chết cũng biết
+    condition: "value == 0"
+    notify: [tele]</code></pre>
+<ul>
+<li>Mỗi <code>KEY</code> thành metric <code>backup.KEY</code> — rule dùng như metric hệ thống.</li>
+<li><code>NOTIFY=...</code> (info), <code>NOTIFY_WARN=...</code>, <code>NOTIFY_ERROR=...</code> — script chủ động bắn thông báo.</li>
+<li>Thông báo trùng nội dung bị <strong>nén tự động</strong> (mặc định 30 phút) — script lặp lại mỗi phút cũng không spam.</li>
+<li>Quy tắc chọn: cái gì diễn đạt được bằng rule thì để rule làm (được chống nhiễu + resolved miễn phí);
+<code>NOTIFY_*</code> dành cho logic rule không diễn đạt nổi.</li>
+</ul>
+
+<h2 id="chan-doan"><span class="n">6.</span> Chẩn đoán khi có vấn đề</h2>
+<pre><code>emday doctor --verdict</code></pre>
+<p>Lệnh này <strong>tuyệt đối chỉ đọc</strong>, trả lời lần lượt: thư mục cấu hình nào đang được dùng?
+config có hợp lệ không? daemon đã chạy chưa? có thông báo nào đang kẹt trong hàng đợi không?
+— kèm kết luận và bước xử lý tiếp theo.</p>
+<table>
+<tr><th>Triệu chứng</th><th>Kiểm tra</th></tr>
+<tr><td>Không nhận được thông báo</td><td><code>emday doctor --verdict</code> — nhìn mục queue; nếu kẹt thì <code>emday test-notify &lt;tên&gt;</code> để xem lỗi cụ thể (sai token? sai URL?)</td></tr>
+<tr><td>Service không chạy</td><td><code>emday status</code>, rồi <code>journalctl -u emday -n 50</code></td></tr>
+<tr><td>Sửa config xong quên kiểm tra</td><td><code>emday check-config</code> — luôn chạy sau mỗi lần sửa</td></tr>
+<tr><td>Điều kiện rule không như ý</td><td><code>emday test-rule '...' --value ...</code></td></tr>
+</table>
+
+<h2 id="tai-lieu"><span class="n">7.</span> Tài liệu đầy đủ (trong chính binary)</h2>
+<pre><code>emday docs              # danh sách chủ đề
+emday docs config       # cấu hình chi tiết
+emday docs conditions   # cú pháp điều kiện
+emday docs exec         # viết script mở rộng
+emday docs notifiers    # từng loại đích thông báo
+emday docs agent        # hướng dẫn cho AI agent</code></pre>
+<div class="tip">🤖 Dùng Claude Code / AI agent trên server? Bảo nó chạy
+<code>emday docs agent</code> — một trang đó đủ để agent tự cấu hình, viết script mở rộng
+và chẩn đoán emday, không cần tài liệu nào khác.</div>
+
+<h2 id="go-cai"><span class="n">8.</span> Nâng cấp & gỡ cài đặt</h2>
+<pre><code># nâng cấp: thay binary rồi khởi động lại
+sudo emday stop
+sudo install -m 0755 emday-moi /usr/local/bin/emday
+sudo emday start
+
+# gỡ cài đặt
+sudo emday stop &amp;&amp; sudo emday uninstall
+sudo rm /usr/local/bin/emday
+sudo rm -rf /etc/emday          # xoá luôn cấu hình + state nếu muốn</code></pre>
+
+<footer>
+  <p><a href="index.html">emday</a> ·
+  <a href="https://github.com/madnh/emday">GitHub</a> ·
+  <a href="https://github.com/madnh/emday/blob/main/CHANGELOG.md">changelog</a></p>
+</footer>
+
+</main>
+</body>
+</html>

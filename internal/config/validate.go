@@ -1,0 +1,157 @@
+package config
+
+import (
+	"fmt"
+	"net/url"
+
+	"github.com/expr-lang/expr"
+	"github.com/expr-lang/expr/vm"
+)
+
+var sourceTypes = map[string]bool{
+	"ip": true, "cpu": true, "memory": true, "disk": true, "process": true, "exec": true,
+}
+
+var notifierTypes = map[string]bool{
+	"webhook": true, "telegram": true, "ntfy": true,
+	"lark": true, "slack": true, "discord": true,
+}
+
+var levels = map[string]bool{"info": true, "warn": true, "error": true}
+
+// Problem is one validation finding, addressable enough to fix.
+type Problem struct {
+	Where string `json:"where"` // "sources.backup", "rules[2]", "notifiers.tg"
+	Msg   string `json:"msg"`
+}
+
+func (p Problem) String() string { return p.Where + ": " + p.Msg }
+
+// Validate checks cross-references and compiles every rule condition.
+// It returns all problems at once rather than stopping at the first.
+func (c *Config) Validate() []Problem {
+	var probs []Problem
+	add := func(where, format string, args ...any) {
+		probs = append(probs, Problem{Where: where, Msg: fmt.Sprintf(format, args...)})
+	}
+
+	if len(c.Sources) == 0 {
+		add("sources", "no sources defined — emday would have nothing to watch")
+	}
+	for name, s := range c.Sources {
+		where := "sources." + name
+		if !sourceTypes[s.Type] {
+			add(where, "unknown type %q (see `emday docs config`)", s.Type)
+			continue
+		}
+		if s.Type == "exec" {
+			if s.Command == "" {
+				add(where, "exec source needs `command`")
+			}
+			if s.Parse != "" && s.Parse != "stdout" {
+				add(where, "parse must be omitted (output file) or \"stdout\", got %q", s.Parse)
+			}
+		}
+		if s.Type == "ip" {
+			for _, m := range s.Mode {
+				if m != "v4" && m != "v6" {
+					add(where, "mode entries must be \"v4\" or \"v6\", got %q", m)
+				}
+			}
+			for _, u := range append(append([]string{}, s.EndpointsV4...), s.EndpointsV6...) {
+				if parsed, err := url.Parse(u); err != nil || (parsed.Scheme != "http" && parsed.Scheme != "https") {
+					add(where, "endpoint %q is not a valid http(s) URL", u)
+				}
+			}
+		}
+		for _, target := range s.Notify {
+			if _, ok := c.Notifiers[target]; !ok {
+				add(where, "notify target %q is not a defined notifier", target)
+			}
+		}
+	}
+
+	for i, r := range c.Rules {
+		where := fmt.Sprintf("rules[%d]", i)
+		if r.Metric == "" {
+			add(where, "missing `metric`")
+		}
+		if r.OnChange && r.Condition != "" {
+			add(where, "use either on_change or condition, not both")
+		}
+		if !r.OnChange && r.Condition == "" {
+			add(where, "needs on_change: true or a condition")
+		}
+		if r.Condition != "" {
+			if _, err := CompileCondition(r.Condition); err != nil {
+				add(where, "condition does not compile: %v (see `emday docs conditions`)", err)
+			}
+		}
+		if !levels[r.Level] {
+			add(where, "level must be info|warn|error, got %q", r.Level)
+		}
+		if len(r.Notify) == 0 {
+			add(where, "no notify targets — this rule would alert nobody")
+		}
+		for _, target := range r.Notify {
+			if _, ok := c.Notifiers[target]; !ok {
+				add(where, "notify target %q is not a defined notifier", target)
+			}
+		}
+	}
+
+	for name, n := range c.Notifiers {
+		where := "notifiers." + name
+		switch n.Type {
+		case "webhook":
+			if n.URL == "" {
+				add(where, "webhook needs `url`")
+			}
+		case "telegram":
+			if n.Token == "" && n.TokenEnv == "" {
+				add(where, "telegram needs `token_env` (or `token`)")
+			}
+			if n.ChatID == "" {
+				add(where, "telegram needs `chat_id`")
+			}
+		case "ntfy":
+			if n.URL == "" {
+				add(where, "ntfy needs `url` (e.g. https://ntfy.sh/your-topic)")
+			}
+		case "lark":
+			if n.URL == "" {
+				add(where, "lark needs `url` (the custom bot webhook)")
+			}
+		case "slack":
+			if n.URL == "" {
+				add(where, "slack needs `url` (an incoming webhook)")
+			}
+		case "discord":
+			if n.URL == "" {
+				add(where, "discord needs `url` (a channel webhook)")
+			}
+		default:
+			add(where, "unknown type %q (supported: webhook, telegram, ntfy, lark, slack, discord)", n.Type)
+		}
+	}
+
+	return probs
+}
+
+// CompileCondition compiles a rule expression. The only variable is `value`.
+func CompileCondition(cond string) (*vm.Program, error) {
+	return expr.Compile(cond, expr.AllowUndefinedVariables(), expr.AsBool())
+}
+
+// EvalCondition runs a compiled condition against a value.
+func EvalCondition(prog *vm.Program, value any) (bool, error) {
+	out, err := expr.Run(prog, map[string]any{"value": value})
+	if err != nil {
+		return false, err
+	}
+	b, ok := out.(bool)
+	if !ok {
+		return false, fmt.Errorf("condition returned %T, want bool", out)
+	}
+	return b, nil
+}

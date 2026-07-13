@@ -1,0 +1,53 @@
+# GoReleaser v2 — mirrors `make build-release` (trimpath, stripped, stamped).
+version: 2
+
+project_name: emday
+
+builds:
+  - main: ./cmd/emday
+    binary: emday
+    env:
+      - CGO_ENABLED=0
+    flags:
+      - -trimpath
+    ldflags:
+      - -s -w
+      - -X github.com/madnh/emday/internal/buildinfo.Version={{.Version}}
+      - -X github.com/madnh/emday/internal/buildinfo.Commit={{.ShortCommit}}
+      - -X github.com/madnh/emday/internal/buildinfo.Date={{.Date}}
+    goos: [linux, darwin, windows]
+    goarch: [amd64, arm64]
+    ignore:
+      - goos: windows
+        goarch: arm64
+
+archives:
+  - formats: [tar.gz]
+    format_overrides:
+      - goos: windows
+        formats: [zip]
+    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    files:
+      - README.md
+      - CHANGELOG.md
+
+checksum:
+  name_template: checksums.txt
+
+changelog:
+  use: github
+  groups:
+    - title: Features
+      regexp: '^feat[(:]'
+      order: 0
+    - title: Fixes
+      regexp: '^fix[(:]'
+      order: 1
+    - title: Other
+      order: 999
+
+release:
+  footer: |
+    Full changelog: [CHANGELOG.md](https://github.com/madnh/emday/blob/main/CHANGELOG.md)
+
+    **Verify the download**: `sha256sum -c checksums.txt --ignore-missing`

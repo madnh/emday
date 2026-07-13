@@ -1,0 +1,270 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<meta name="description" content="emday — self-contained server monitoring with notifications, in one binary. IP changes, CPU/RAM/disk thresholds, custom scripts → Telegram, ntfy, Lark, Slack, Discord, webhooks.">
+<meta property="og:title" content="emday — it says “em đây!” when your server changes">
+<meta property="og:description" content="Self-contained server monitoring in one binary. Your server texts you when something changes.">
+<meta property="og:image" content="https://madnh.github.io/emday/logo.png">
+<link rel="icon" type="image/png" href="favicon.png">
+<title>emday — it says "em đây!" when your server changes</title>
+<style>
+:root {
+  color-scheme: light dark;
+  --bg: light-dark(#fbfaf8, #101418);
+  --surface: light-dark(#f3f1ed, #1a2027);
+  --ink: light-dark(#1f2933, #d7dee4);
+  --muted: light-dark(#68737d, #8a97a3);
+  --teal: light-dark(#0b7285, #53d6e8);
+  --teal-soft: light-dark(#e3f2f5, #12333c);
+  --coral: light-dark(#e05d49, #ff8b76);
+  --ok: light-dark(#2f9e62, #57d99a);
+  --border: light-dark(#e4e1db, #2a323c);
+  --code-bg: light-dark(#f1efeb, #171d24);
+  --chat-bg: #12181f;               /* the phone is always night mode */
+  --chat-bubble: #1e2833;
+  --chat-text: #dbe4ec;
+  --mono: ui-monospace, "SF Mono", "Cascadia Code", Menlo, Consolas, monospace;
+  --sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.65 var(--sans); }
+a { color: var(--teal); }
+:focus-visible { outline: 2px solid var(--coral); outline-offset: 2px; border-radius: 2px; }
+
+/* ---------- hero: the product is a message arriving ---------- */
+.hero {
+  max-width: 62rem; margin: 0 auto; padding: 3.5rem 1.25rem 1rem;
+  display: grid; grid-template-columns: 1.05fr 0.95fr; gap: 3rem; align-items: center;
+}
+.hero-copy .brand { display: flex; align-items: center; gap: 1rem; }
+.brand img { border-radius: 22%; border: 1px solid var(--border); background: #fff; }
+h1 {
+  font-family: var(--mono); font-size: clamp(2.4rem, 6vw, 3.4rem);
+  margin: 0; letter-spacing: -0.045em; font-weight: 700;
+}
+h1 .em { color: var(--teal); }
+p.tagline { font-size: 1.15rem; color: var(--muted); margin: 1.1rem 0 0; max-width: 30rem; }
+p.origin { font-size: 0.95rem; color: var(--muted); margin-top: 0.9rem; }
+p.origin em { color: var(--ink); }
+nav.top { display: flex; gap: 0.75rem; flex-wrap: wrap; margin-top: 1.6rem; }
+nav.top a {
+  display: inline-block; padding: 0.55rem 1.2rem; border-radius: 8px;
+  border: 1px solid var(--border); text-decoration: none; color: var(--ink);
+  font-family: var(--mono); font-size: 0.9rem;
+}
+nav.top a.primary { background: var(--teal); border-color: var(--teal); color: light-dark(#fff, #0d2b32); font-weight: 700; }
+nav.top a:hover { border-color: var(--teal); }
+
+/* the chat card */
+.phone {
+  background: var(--chat-bg); border-radius: 18px; padding: 1.1rem 1.1rem 1.3rem;
+  border: 1px solid light-dark(#2a323c, #2a323c);
+  box-shadow: 0 12px 40px light-dark(rgba(31,41,51,0.18), rgba(0,0,0,0.5));
+}
+.phone .who {
+  display: flex; align-items: center; gap: 0.6rem; color: #8a97a3;
+  font-family: var(--mono); font-size: 0.78rem; margin-bottom: 0.9rem;
+}
+.phone .who img { width: 26px; height: 26px; border-radius: 30%; background: #fff; }
+.phone .who .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--ok); margin-left: auto; }
+.bubble {
+  background: var(--chat-bubble); color: var(--chat-text);
+  border-radius: 4px 14px 14px 14px; padding: 0.6rem 0.85rem; margin-top: 0.6rem;
+  font-size: 0.88rem; line-height: 1.5; max-width: 95%;
+  opacity: 0; transform: translateY(8px); animation: arrive 0.4s ease-out forwards;
+}
+.bubble code { font-family: var(--mono); font-size: 0.84em; color: #9adfec; }
+.bubble .meta { display: block; color: #6d7a86; font-family: var(--mono); font-size: 0.72rem; margin-top: 0.35rem; }
+.bubble.warn { border-left: 3px solid var(--coral); }
+.bubble.ok   { border-left: 3px solid var(--ok); }
+.bubble:nth-child(2) { animation-delay: 0.15s; }
+.bubble:nth-child(3) { animation-delay: 0.9s; }
+.bubble:nth-child(4) { animation-delay: 1.7s; }
+@keyframes arrive { to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) {
+  .bubble { animation: none; opacity: 1; transform: none; }
+}
+
+/* ---------- body ---------- */
+main { max-width: 46rem; margin: 0 auto; padding: 1rem 1.25rem 5rem; }
+h2 {
+  font-family: var(--mono); font-size: 1.35rem; font-weight: 700;
+  letter-spacing: -0.02em; margin: 3.2rem 0 0.8rem;
+}
+h2::after { content: ":"; color: var(--coral); }
+h3 { margin-top: 2rem; font-size: 1.1rem; }
+pre {
+  background: var(--code-bg); border: 1px solid var(--border); border-radius: 8px;
+  padding: 0.9rem 1.1rem; overflow-x: auto; font-size: 0.88rem; line-height: 1.55;
+}
+code { font-family: var(--mono); }
+p code, li code, td code { background: var(--code-bg); border-radius: 4px; padding: 0.1em 0.35em; font-size: 0.88em; }
+p.note { color: var(--muted); font-size: 0.95rem; }
+.pillars { display: grid; grid-template-columns: 1fr 1fr; gap: 1.4rem 2.5rem; margin-top: 2.2rem; }
+.pillars h3 {
+  font-family: var(--mono); font-size: 0.95rem; margin: 0 0 0.3rem; color: var(--teal);
+  font-weight: 700;
+}
+.pillars p { margin: 0; font-size: 0.93rem; color: var(--muted); }
+table { border-collapse: collapse; width: 100%; font-size: 0.92rem; display: block; overflow-x: auto; }
+th, td { text-align: left; border: 1px solid var(--border); padding: 0.45rem 0.7rem; }
+th { background: var(--surface); font-family: var(--mono); font-size: 0.85rem; }
+.tip { background: var(--teal-soft); border-radius: 8px; padding: 0.8rem 1.1rem; font-size: 0.95rem; }
+footer { margin-top: 4rem; padding-top: 1.5rem; border-top: 1px solid var(--border); color: var(--muted); font-size: 0.9rem; text-align: center; }
+footer a { color: var(--muted); }
+
+@media (max-width: 52rem) {
+  .hero { grid-template-columns: 1fr; gap: 2rem; padding-top: 2.5rem; }
+  .phone { max-width: 26rem; }
+}
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="hero-copy">
+    <div class="brand">
+      <img src="logo.png" alt="" width="72" height="72">
+      <h1><span class="em">em</span>day</h1>
+    </div>
+    <p class="tagline">Self-contained server monitoring, in one binary.
+    Your server texts you when something changes.</p>
+    <p class="origin"><em>“em đây!”</em> is Vietnamese for <em>“it’s me!”</em> — when your
+    server’s IP changes, emday pings you: <em>it’s me, here’s my new IP.</em></p>
+    <nav class="top">
+      <a class="primary" href="https://github.com/madnh/emday/releases/latest">download</a>
+      <a href="https://github.com/madnh/emday">github</a>
+      <a href="huong-dan.html">tiếng Việt</a>
+    </nav>
+  </div>
+
+  <div class="phone" aria-label="Example notifications emday sends">
+    <div class="who"><img src="logo.png" alt=""> emday @ prod-sg-01 <span class="dot" aria-hidden="true"></span></div>
+    <div class="bubble">👋 em đây! Public IP changed:<br>
+      <code>113.161.72.9 → 118.69.37.55</code>
+      <span class="meta">rule/ip.public_v4 · 07:02</span></div>
+    <div class="bubble warn">⚠️ cpu.percent: value ≥ 90 held for 5m<br>
+      <code>value: 96.4</code>
+      <span class="meta">rule/cpu.percent · 14:31</span></div>
+    <div class="bubble ok">✅ cpu.percent: resolved<br>
+      <code>value: 41.2</code>
+      <span class="meta">rule/cpu.percent · 14:48</span></div>
+  </div>
+</header>
+
+<main>
+
+<section class="pillars" aria-label="What emday is">
+  <div><h3>watches</h3>
+    <p>Public IP, CPU, RAM, disk, processes — and anything your own scripts can measure.</p></div>
+  <div><h3>notifies</h3>
+    <p>Telegram, ntfy, Lark, Slack, Discord, any webhook. Queued and retried — offline alerts arrive when the network returns.</p></div>
+  <div><h3>self-contained</h3>
+    <p>One static binary. Installs itself as a service on Linux, macOS, and Windows. No agent phoning home, no UI.</p></div>
+  <div><h3>self-teaching</h3>
+    <p>All docs ship inside the binary: <code>emday docs</code>. AI agents get their own guide: <code>emday docs agent</code>.</p></div>
+</section>
+
+<h2 id="install">install</h2>
+<p>Grab the binary for your platform from
+<a href="https://github.com/madnh/emday/releases/latest">the latest release</a>, e.g. on a Linux server:</p>
+<pre><code>curl -fsSL -o emday.tar.gz \
+  https://github.com/madnh/emday/releases/latest/download/emday_VERSION_linux_amd64.tar.gz
+tar -xzf emday.tar.gz emday
+sudo install -m 0755 emday /usr/local/bin/emday
+emday version</code></pre>
+<p class="note">Verify downloads with <code>sha256sum -c checksums.txt --ignore-missing</code>
+(checksums ship with every release).</p>
+
+<h2 id="quickstart">quick start</h2>
+<pre><code>sudo emday init            # creates /etc/emday with a commented starter config
+sudo vi /etc/emday/emday.yaml   # add your notifier, tweak rules
+emday check-config         # validates config, compiles every rule
+emday test-notify my-telegram   # make sure alerts actually arrive
+sudo emday install &amp;&amp; sudo emday start   # run as a system service</code></pre>
+<div class="tip">Something wrong? <code>emday doctor --verdict</code> diagnoses the deployment —
+which config resolved, what failed, and the next step — without touching anything.</div>
+
+<h2 id="config">configure</h2>
+<pre><code>version: 1
+
+sources:
+  ip:
+    type: ip
+    mode: [v4]
+    endpoints_v4:              # where to ask "what is my IP" — your choice
+      - https://api.ipify.org
+      - https://checkip.amazonaws.com
+  cpu:  {type: cpu, interval: 30s}
+  disk: {type: disk, mounts: {root: "/"}}
+
+rules:
+  - metric: ip.public_v4
+    on_change: true            # "em đây, new IP!"
+    notify: [my-telegram]
+  - metric: cpu.percent
+    condition: "value >= 90"   # expression over `value`
+    for: 5m                    # must hold 5 minutes (anti-flapping)
+    notify: [my-telegram]
+
+notifiers:
+  my-telegram:
+    type: telegram
+    token_env: EMDAY_TG_TOKEN
+    chat_id: "-100123456"</code></pre>
+
+<h3>Rule conditions</h3>
+<table>
+<tr><th>goal</th><th>write</th></tr>
+<tr><td>Compare numbers</td><td><code>value &gt; 90</code>, <code>value &lt;= 10</code>, <code>value == 0</code></td></tr>
+<tr><td>Compare strings</td><td><code>value == "failed"</code>, <code>value != "ok"</code></td></tr>
+<tr><td>Contains / prefix / suffix</td><td><code>value contains "err"</code>, <code>value startsWith "eth"</code></td></tr>
+<tr><td>In a list</td><td><code>value in ["a", "b"]</code>, <code>value not in ["ok"]</code></td></tr>
+<tr><td>Combine</td><td><code>... and ...</code>, <code>... or ...</code>, <code>not (...)</code></td></tr>
+</table>
+<p>Try syntax instantly: <code>emday test-rule 'value &gt; 90' --value 95</code> → <code>true</code>.
+Rules with <code>for:</code> also send a <strong>resolved</strong> notification when the condition clears.</p>
+
+<h2 id="extend">extend</h2>
+<p>An exec source runs your command on an interval. The script appends metrics — or direct
+notifications — to the file named by <code>$EMDAY_OUTPUT</code> (the GitHub Actions model).
+stdout stays free for logging.</p>
+<pre><code>#!/bin/sh
+age=$(( ($(date +%s) - $(stat -c %Y /backup/latest)) / 3600 ))
+echo "BACKUP_AGE_HOURS=$age" &gt;&gt; "$EMDAY_OUTPUT"
+[ "$age" -gt 26 ] &amp;&amp; echo "NOTIFY_ERROR=backup overdue (${age}h)" &gt;&gt; "$EMDAY_OUTPUT"</code></pre>
+<pre><code>sources:
+  backup:
+    type: exec
+    command: /opt/scripts/check-backup.sh
+    interval: 5m
+    notify: [my-telegram]      # targets for NOTIFY_* lines</code></pre>
+<p>Every key becomes a metric (<code>backup.BACKUP_AGE_HOURS</code>) that rules can watch, and
+<code>backup._ok</code> catches a silently broken script. Identical NOTIFY messages are deduped,
+so a repeating script can’t spam you.</p>
+
+<h2 id="docs">docs, in the binary</h2>
+<pre><code>emday docs              # topic list
+emday docs config       # config format &amp; resolution
+emday docs conditions   # rule syntax cheat sheet
+emday docs exec         # extending with scripts
+emday docs notifiers    # telegram / ntfy / lark / slack / discord / webhook
+emday docs agent        # operating guide for AI agents</code></pre>
+<div class="tip">Point an AI agent at a server with emday and tell it to run
+<code>emday docs agent</code> — that one page is enough for it to configure, extend, and
+diagnose emday. <code>doctor</code>, <code>check-config</code>, and <code>test-rule</code> all
+speak <code>--json</code>.</div>
+
+<footer>
+  <p>emday · sharp pre-1.0 edges ·
+  <a href="https://github.com/madnh/emday">source</a> ·
+  <a href="https://github.com/madnh/emday/blob/main/CHANGELOG.md">changelog</a> ·
+  <a href="huong-dan.html">tiếng Việt</a></p>
+</footer>
+
+</main>
+</body>
+</html>

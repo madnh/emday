@@ -1,0 +1,89 @@
+# emday configuration — see `emday docs config` for the full reference.
+# After every edit: emday check-config
+version: 1
+
+defaults:
+  cooldown: 30m        # min interval between identical alerts
+  interval: 1m         # default source interval
+
+sources:
+  # Public IP — the original emday use case. Endpoints are YOUR choice;
+  # each is tried in order and its response must be a bare, valid address.
+  ip:
+    type: ip
+    interval: 1m
+    mode: [v4]                       # add "v6" to also track IPv6
+    endpoints_v4:
+      - https://api.ipify.org
+      - https://ipv4.icanhazip.com
+      - https://checkip.amazonaws.com
+    # endpoints_v6:
+    #   - https://api6.ipify.org
+    # interfaces: [eth0]             # also report local NIC addresses
+
+  cpu:
+    type: cpu                        # cpu.percent, cpu.load1/5/15
+    interval: 30s
+
+  memory:
+    type: memory                     # memory.percent, memory.used_mb, ...
+
+  disk:
+    type: disk                       # disk.root.percent, disk.root.free_gb
+    interval: 5m
+    mounts:
+      root: "/"
+      # data: "/data"
+
+  # Watch that critical processes stay up:
+  # services:
+  #   type: process                  # services.nginx.running (1/0)
+  #   processes: [nginx, sshd]
+
+  # Extend emday with any script — see `emday docs exec`:
+  # backup:
+  #   type: exec
+  #   command: /opt/scripts/check-backup.sh
+  #   interval: 5m
+  #   timeout: 30s
+  #   notify: [my-telegram]          # targets for the script's NOTIFY_* lines
+
+rules:
+  # on_change: alert whenever the value changes ("em đây, IP mới nè")
+  - metric: ip.public_v4
+    on_change: true
+    notify: [my-telegram]
+
+  # condition + for: threshold with anti-flapping; sends "resolved" too.
+  # Syntax cheat sheet: `emday docs conditions`; try: emday test-rule 'value >= 90' --value 95
+  - metric: cpu.percent
+    condition: "value >= 90"
+    for: 5m
+    notify: [my-telegram]
+
+  - metric: memory.percent
+    condition: "value >= 90"
+    for: 5m
+    notify: [my-telegram]
+
+  - metric: disk.root.percent
+    condition: "value >= 90"
+    level: error
+    notify: [my-telegram]
+
+notifiers:
+  # Types: telegram, ntfy, lark, slack, discord, webhook —
+  # see `emday docs notifiers`. Verify with: emday test-notify my-telegram
+  my-telegram:
+    type: telegram
+    token_env: EMDAY_TG_TOKEN        # export EMDAY_TG_TOKEN=<bot token>
+    chat_id: "CHANGE_ME"
+
+  # my-phone:
+  #   type: ntfy
+  #   url: https://ntfy.sh/your-secret-topic
+
+  # my-lark:
+  #   type: lark
+  #   url: https://open.larksuite.com/open-apis/bot/v2/hook/...
+  #   secret_env: EMDAY_LARK_SECRET  # only if bot signature is enabled
