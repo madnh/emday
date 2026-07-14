@@ -2,7 +2,7 @@
 
 You are working with emday, a single-binary monitoring daemon. This page is
 the complete mental model; the other topics (`emday docs config`,
-`conditions`, `exec`, `notifiers`) hold the details. You never need
+`conditions`, `exec`, `notifiers`, `deploy`) hold the details. You never need
 documentation outside this binary.
 
 ## Concept model
@@ -13,7 +13,9 @@ documentation outside this binary.
 - A **source** collects metrics on an interval: built-ins `public-ip` (via
   user-configured endpoints, strictly validated IPv4/IPv6), `local-ip` (NIC
   addresses from the kernel), `cpu`, `memory`, `disk`, `process`, and `exec`
-  (any script).
+  (any script). Each built-in has a full reference — exact metrics, required
+  permissions, rule examples, failure modes — at `emday docs source-<type>`
+  (e.g. `emday docs source-disk`).
 - A **rule** watches one metric: `on_change: true` fires on any change;
   `condition: "value >= 90"` (expression over `value`) with optional `for: 5m`
   (must hold continuously) fires an alert and later a "resolved" event.
@@ -60,6 +62,12 @@ then `emday test-notify <name>`). Service running? `emday status`.
 
 **Try condition syntax**: `emday test-rule 'value not in ["ok"]' --value failed`
 — treat it as a REPL; do not guess syntax into config files.
+
+**Deploy to a fleet** (systemd, non-root, secrets, version pinning, a CI
+gate): `emday docs deploy`. Secrets (`token_env`/`secret_env`/`url_env`)
+must reach the service via systemd `EnvironmentFile=` — it does not inherit
+your shell. Gate deploys with plain `emday check-config` (non-zero exit on
+problems); with `--json` you additionally get the report on stdout.
 
 ## Project home
 

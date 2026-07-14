@@ -85,9 +85,22 @@ which directory resolved and why.
         token_env: EMDAY_TG_TOKEN
         chat_id: "-100123456"
 
-The public-ip source accepts responses ONLY when the entire body is one valid
-address of the requested family — an endpoint returning HTML or an error
-page is skipped, never mistaken for an IP change.
+## Built-in sources at a glance
+
+Each has a full reference — metrics, exact permissions, rule examples, and
+failure modes — under `emday docs source-<type>`:
+
+    type         metrics                              reads via            root?
+    public-ip    <name>.v4 / .v6 (string)             outbound HTTPS       no
+    local-ip     <name>.<iface>_v4 / _v6 (string)     netlink (kernel)     no
+    cpu          cpu.percent, cpu.load1/5/15          /proc                no
+    memory       memory.percent/used_mb/total_mb/…    /proc                no
+    disk         disk.<alias>.percent/free_gb         statfs(path)         no
+    process      <name>.<proc>.running/count          /proc/<pid>          no*
+
+`* process` needs care under `hidepid`/`ProtectProc` — see
+`emday docs source-process`. No built-in source needs root; see
+`emday docs deploy` for running as a dedicated non-root user.
 
 Validate after editing:
 

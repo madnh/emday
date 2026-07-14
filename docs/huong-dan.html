@@ -175,6 +175,12 @@ Nếu bot bật chế độ chữ ký (signature) thì khai thêm <code>secret_e
     url: https://ntfy.sh/ten-topic-bi-mat-cua-ban</code></pre>
 <p>Ngoài ra còn <code>slack</code>, <code>discord</code>, và <code>webhook</code> (tuỳ biến hoàn toàn) —
 xem <code>emday docs notifiers</code>.</p>
+<p>Với slack/discord/webhook, <strong>URL chính là bí mật</strong> (token nằm trong đường dẫn).
+Muốn giữ URL ngoài file config, khai <code>url_env</code> (TÊN biến env chứa URL) thay cho <code>url</code>:</p>
+<pre><code>notifiers:
+  slack:
+    type: slack
+    url_env: EMDAY_SLACK_URL   # nạp qua systemd EnvironmentFile — xem mục 4</code></pre>
 
 <h3>3.4. Kiểm tra trước khi chạy</h3>
 <pre><code>emday check-config              # validate config + compile mọi điều kiện
@@ -185,14 +191,21 @@ emday test-notify tele          # gửi thử một tin — kiểm tra điện t
 <pre><code>sudo emday install
 sudo emday start
 emday status                    # running</code></pre>
-<p>emday tự đăng ký vào systemd. Nếu notifier dùng biến môi trường
-(<code>token_env</code>, <code>secret_env</code>), khai báo cho service như sau:</p>
+<p>emday tự đăng ký vào systemd. Service <strong>không kế thừa shell của bạn</strong>,
+nên mọi biến env của notifier (<code>token_env</code>, <code>secret_env</code>,
+<code>url_env</code>) phải khai trực tiếp cho service:</p>
 <pre><code>sudo systemctl edit emday</code></pre>
-<pre><code># nội dung override:
+<pre><code># nội dung override — đưa secret vào file riêng, chmod 0600:
 [Service]
-Environment=EMDAY_TG_TOKEN=123456:ABC-token-cua-bot
-Environment=EMDAY_LARK_SECRET=xxxx</code></pre>
+EnvironmentFile=/etc/emday/emday.env</code></pre>
+<pre><code># /etc/emday/emday.env  (mode 0600, render từ kho secret của bạn)
+EMDAY_TG_TOKEN=123456:ABC-token-cua-bot
+EMDAY_LARK_SECRET=xxxx
+EMDAY_SLACK_URL=https://hooks.slack.com/services/T/B/X</code></pre>
 <pre><code>sudo systemctl restart emday</code></pre>
+<div class="tip">💡 Không source nào cần root — nên chạy service bằng user riêng
+(<code>User=emday</code>) cho an toàn. Toàn bộ chuyện triển khai fleet (systemd, non-root,
+secret, pin version, gate <code>check-config</code>) gói trong <code>emday docs deploy</code>.</div>
 <div class="tip">💡 Muốn chạy thử trước khi cài service: <code>sudo emday run</code>
 (chạy foreground, log ra màn hình, Ctrl-C để dừng).</div>
 
@@ -247,12 +260,26 @@ config có hợp lệ không? daemon đã chạy chưa? có thông báo nào đa
 </table>
 
 <h2 id="tai-lieu"><span class="n">7.</span> Tài liệu đầy đủ (trong chính binary)</h2>
-<pre><code>emday docs              # danh sách chủ đề
-emday docs config       # cấu hình chi tiết
-emday docs conditions   # cú pháp điều kiện
-emday docs exec         # viết script mở rộng
-emday docs notifiers    # từng loại đích thông báo
-emday docs agent        # hướng dẫn cho AI agent</code></pre>
+<p>Mỗi chủ đề là một file Markdown nằm <em>ngay trong binary</em>
+(<code>emday docs &lt;chủ-đề&gt;</code>) — cũng chính là file bạn (hoặc AI agent) đọc được
+trên GitHub. Trang này chỉ liệt kê, bấm vào để tới đúng file:</p>
+<ul class="doclist">
+<li><a href="https://github.com/madnh/emday/blob/main/internal/docs/topics/config.md">config</a> — thư mục config, định dạng <code>emday.yaml</code>, thứ tự tìm config</li>
+<li><a href="https://github.com/madnh/emday/blob/main/internal/docs/topics/conditions.md">conditions</a> — cú pháp điều kiện của rule</li>
+<li><a href="https://github.com/madnh/emday/blob/main/internal/docs/topics/exec.md">exec</a> — viết script mở rộng (<code>$EMDAY_OUTPUT</code>, <code>NOTIFY_*</code>)</li>
+<li><a href="https://github.com/madnh/emday/blob/main/internal/docs/topics/notifiers.md">notifiers</a> — từng loại đích thông báo</li>
+<li><a href="https://github.com/madnh/emday/blob/main/internal/docs/topics/deploy.md">deploy</a> — chạy như service: systemd, non-root, secret, pin version</li>
+<li><a href="https://github.com/madnh/emday/blob/main/internal/docs/topics/agent.md">agent</a> — hướng dẫn cho AI agent</li>
+</ul>
+<p>Tra cứu từng builtin source (metric chính xác, quyền cần, rule mẫu, cạm bẫy):</p>
+<ul class="doclist">
+<li><a href="https://github.com/madnh/emday/blob/main/internal/docs/topics/source-public-ip.md">source-public-ip</a> — IP WAN qua endpoint bạn khai</li>
+<li><a href="https://github.com/madnh/emday/blob/main/internal/docs/topics/source-local-ip.md">source-local-ip</a> — địa chỉ NIC đọc từ kernel</li>
+<li><a href="https://github.com/madnh/emday/blob/main/internal/docs/topics/source-cpu.md">source-cpu</a> — CPU percent và load average</li>
+<li><a href="https://github.com/madnh/emday/blob/main/internal/docs/topics/source-memory.md">source-memory</a> — RAM và swap</li>
+<li><a href="https://github.com/madnh/emday/blob/main/internal/docs/topics/source-disk.md">source-disk</a> — dung lượng ổ/mount</li>
+<li><a href="https://github.com/madnh/emday/blob/main/internal/docs/topics/source-process.md">source-process</a> — process còn sống + số lượng</li>
+</ul>
 <div class="tip">🤖 Dùng Claude Code / AI agent trên server? Bảo nó chạy
 <code>emday docs agent</code> — một trang đó đủ để agent tự cấu hình, viết script mở rộng
 và chẩn đoán emday, không cần tài liệu nào khác.</div>

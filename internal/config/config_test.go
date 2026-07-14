@@ -160,6 +160,36 @@ notifiers:
 	}
 }
 
+func TestURLEnvSatisfiesURLAndRejectsPastedURL(t *testing.T) {
+	dir := writeConfig(t, `
+version: 1
+sources:
+  cpu: {type: cpu}
+notifiers:
+  good: {type: slack, url_env: EMDAY_SLACK_URL}
+  pasted: {type: slack, url_env: "https://hooks.slack.com/services/T/B/X"}
+`)
+	cfg, err := Load(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	probs := cfg.Validate()
+	for _, p := range probs {
+		if strings.Contains(p.Where, "good") {
+			t.Errorf("url_env should satisfy the URL requirement, but got: %v", p)
+		}
+	}
+	found := false
+	for _, p := range probs {
+		if strings.Contains(p.Where, "pasted") && strings.Contains(p.Msg, "url_env must be the NAME") {
+			found = true
+		}
+	}
+	if !found {
+		t.Errorf("a URL pasted into url_env was not flagged; problems: %v", probs)
+	}
+}
+
 func TestConditionCompileAndEval(t *testing.T) {
 	cases := []struct {
 		cond  string

@@ -81,7 +81,11 @@ func newWebhook(name string, cfg *config.Notifier) (*webhook, error) {
 	if err != nil {
 		return nil, fmt.Errorf("body_template: %w", err)
 	}
-	return &webhook{name: name, url: cfg.URL, method: method, headers: cfg.Headers, tmpl: tmpl}, nil
+	url, err := resolveURL(cfg)
+	if err != nil {
+		return nil, err
+	}
+	return &webhook{name: name, url: url, method: method, headers: cfg.Headers, tmpl: tmpl}, nil
 }
 
 func (w *webhook) Name() string { return w.name }
@@ -155,7 +159,11 @@ type ntfy struct {
 }
 
 func newNtfy(name string, cfg *config.Notifier) (*ntfy, error) {
-	return &ntfy{name: name, url: cfg.URL, priority: cfg.Priority}, nil
+	url, err := resolveURL(cfg)
+	if err != nil {
+		return nil, err
+	}
+	return &ntfy{name: name, url: url, priority: cfg.Priority}, nil
 }
 
 func (n *ntfy) Name() string { return n.name }
@@ -219,7 +227,11 @@ type lark struct {
 }
 
 func newLark(name string, cfg *config.Notifier) (*lark, error) {
-	return &lark{name: name, url: cfg.URL, cfg: cfg}, nil
+	url, err := resolveURL(cfg)
+	if err != nil {
+		return nil, err
+	}
+	return &lark{name: name, url: url, cfg: cfg}, nil
 }
 
 func (l *lark) Name() string { return l.name }
@@ -315,7 +327,11 @@ type slack struct {
 }
 
 func newSlack(name string, cfg *config.Notifier) (*slack, error) {
-	return &slack{name: name, url: cfg.URL}, nil
+	url, err := resolveURL(cfg)
+	if err != nil {
+		return nil, err
+	}
+	return &slack{name: name, url: url}, nil
 }
 
 func (s *slack) Name() string { return s.name }
@@ -341,7 +357,11 @@ type discord struct {
 }
 
 func newDiscord(name string, cfg *config.Notifier) (*discord, error) {
-	return &discord{name: name, url: cfg.URL}, nil
+	url, err := resolveURL(cfg)
+	if err != nil {
+		return nil, err
+	}
+	return &discord{name: name, url: url}, nil
 }
 
 func (d *discord) Name() string { return d.name }

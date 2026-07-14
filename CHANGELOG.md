@@ -6,6 +6,28 @@ All notable changes to emday are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- Notifiers that take `url:` (webhook, ntfy, lark, slack, discord) now also
+  accept `url_env:` — the NAME of an environment variable holding the URL, so
+  the webhook URL (itself a secret) can stay out of `emday.yaml`, exactly like
+  `token_env`/`secret_env`. A `url_env` whose variable is unset is a hard
+  startup error, and `emday doctor` reports it. `check-config` rejects a URL
+  pasted into `url_env`.
+- `emday docs deploy` — production/service guide: systemd unit (own-template
+  and `emday install`), running non-root, delivering secrets via
+  `EnvironmentFile=`, pinning a release, and gating a deploy on `check-config`.
+- Per-source reference topics `emday docs source-<type>` (public-ip, local-ip,
+  cpu, memory, disk, process): exact metrics with types/units, how each reads
+  the system and what privilege it needs (non-root, `hidepid` caveat for
+  `process`), rule examples, and failure modes (partial-tolerance, absent-vs-zero).
+
+### Fixed
+
+- `check-config --json` now exits non-zero when the config has problems
+  (previously it always exited 0, so the JSON report's `ok:false` was easy to
+  miss in a CI/Ansible gate). The report still prints to stdout unchanged.
+
 ## [0.1.1] - 2026-07-13
 
 ### Changed

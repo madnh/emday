@@ -105,7 +105,7 @@ func gatherDoctor() *doctorReport {
 		}
 		for name, n := range cfg.Notifiers {
 			rep.Notifiers = append(rep.Notifiers, name)
-			for _, env := range []string{n.TokenEnv, n.SecretEnv} {
+			for _, env := range []string{n.TokenEnv, n.SecretEnv, n.URLEnv} {
 				if env != "" && os.Getenv(env) == "" {
 					rep.EnvMissing = append(rep.EnvMissing, fmt.Sprintf("notifiers.%s: $%s", name, env))
 				}

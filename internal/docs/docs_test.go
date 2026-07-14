@@ -8,7 +8,11 @@ import (
 // The CLI, README, and website all point at these topics by name — a missing
 // or renamed topic breaks `emday docs <topic>` for users following docs.
 func TestExpectedTopicsExist(t *testing.T) {
-	for _, want := range []string{"index", "agent", "conditions", "config", "exec", "notifiers"} {
+	for _, want := range []string{
+		"index", "agent", "conditions", "config", "exec", "notifiers", "deploy",
+		"source-public-ip", "source-local-ip", "source-cpu",
+		"source-memory", "source-disk", "source-process",
+	} {
 		content, err := Topic(want)
 		if err != nil {
 			t.Errorf("topic %q missing: %v", want, err)
