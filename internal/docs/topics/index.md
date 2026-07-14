@@ -10,7 +10,17 @@ All documentation ships inside this binary. Topics:
     emday docs conditions   rule condition syntax cheat sheet
     emday docs exec         extending emday with scripts ($EMDAY_OUTPUT, NOTIFY_*)
     emday docs notifiers    notification targets (webhook, telegram, ntfy)
+    emday docs deploy       running as a service: systemd, non-root, secrets, version pinning
     emday docs agent        compact operating guide for AI agents
+
+Per-source reference (metrics, permissions, rules, gotchas):
+
+    emday docs source-public-ip   WAN IP via your endpoints
+    emday docs source-local-ip    NIC addresses from the kernel
+    emday docs source-cpu         CPU percent and load average
+    emday docs source-memory      RAM and swap
+    emday docs source-disk        filesystem used/free
+    emday docs source-process     named processes up/down + count
 
 Getting started:
 

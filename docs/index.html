@@ -102,6 +102,8 @@ pre {
 }
 code { font-family: var(--mono); }
 p code, li code, td code { background: var(--code-bg); border-radius: 4px; padding: 0.1em 0.35em; font-size: 0.88em; }
+.doclist { padding-left: 1.2rem; }
+.doclist li { margin: 0.45rem 0; }
 p.note { color: var(--muted); font-size: 0.95rem; }
 .pillars { display: grid; grid-template-columns: 1fr 1fr; gap: 1.4rem 2.5rem; margin-top: 2.2rem; }
 .pillars h3 {
@@ -251,13 +253,28 @@ echo "BACKUP_AGE_HOURS=$age" &gt;&gt; "$EMDAY_OUTPUT"
 <code>backup._ok</code> catches a silently broken script. Identical NOTIFY messages are deduped,
 so a repeating script can’t spam you.</p>
 
-<h2 id="docs">docs, in the binary</h2>
-<pre><code>emday docs              # topic list
-emday docs config       # config format &amp; resolution
-emday docs conditions   # rule syntax cheat sheet
-emday docs exec         # extending with scripts
-emday docs notifiers    # telegram / ntfy / lark / slack / discord / webhook
-emday docs agent        # operating guide for AI agents</code></pre>
+<h2 id="docs">docs</h2>
+<p>Every topic is a single Markdown file that ships <em>inside the binary</em>
+(<code>emday docs &lt;topic&gt;</code>) — the same source you (or an AI agent) can read on
+GitHub. This page only indexes them:</p>
+<ul class="doclist">
+<li><a href="https://github.com/madnh/emday/blob/main/internal/docs/topics/config.md">config</a> — config directory, <code>emday.yaml</code> format, resolution order</li>
+<li><a href="https://github.com/madnh/emday/blob/main/internal/docs/topics/conditions.md">conditions</a> — rule condition syntax cheat sheet</li>
+<li><a href="https://github.com/madnh/emday/blob/main/internal/docs/topics/exec.md">exec</a> — extending emday with scripts (<code>$EMDAY_OUTPUT</code>, <code>NOTIFY_*</code>)</li>
+<li><a href="https://github.com/madnh/emday/blob/main/internal/docs/topics/notifiers.md">notifiers</a> — telegram / ntfy / lark / slack / discord / webhook</li>
+<li><a href="https://github.com/madnh/emday/blob/main/internal/docs/topics/deploy.md">deploy</a> — run as a service: systemd, non-root, secrets, version pinning</li>
+<li><a href="https://github.com/madnh/emday/blob/main/internal/docs/topics/agent.md">agent</a> — compact operating guide for AI agents</li>
+</ul>
+<p>Per-source reference (each built-in: exact metrics, required permissions, rule
+examples, failure modes):</p>
+<ul class="doclist">
+<li><a href="https://github.com/madnh/emday/blob/main/internal/docs/topics/source-public-ip.md">source-public-ip</a> — WAN IP via your endpoints</li>
+<li><a href="https://github.com/madnh/emday/blob/main/internal/docs/topics/source-local-ip.md">source-local-ip</a> — NIC addresses from the kernel</li>
+<li><a href="https://github.com/madnh/emday/blob/main/internal/docs/topics/source-cpu.md">source-cpu</a> — CPU percent and load average</li>
+<li><a href="https://github.com/madnh/emday/blob/main/internal/docs/topics/source-memory.md">source-memory</a> — RAM and swap</li>
+<li><a href="https://github.com/madnh/emday/blob/main/internal/docs/topics/source-disk.md">source-disk</a> — filesystem used/free</li>
+<li><a href="https://github.com/madnh/emday/blob/main/internal/docs/topics/source-process.md">source-process</a> — named processes up/down + count</li>
+</ul>
 <div class="tip">Point an AI agent at a server with emday and tell it to run
 <code>emday docs agent</code> — that one page is enough for it to configure, extend, and
 diagnose emday. <code>doctor</code>, <code>check-config</code>, and <code>test-rule</code> all

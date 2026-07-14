@@ -14,6 +14,13 @@ All notable changes to emday are documented here. The format follows
   `token_env`/`secret_env`. A `url_env` whose variable is unset is a hard
   startup error, and `emday doctor` reports it. `check-config` rejects a URL
   pasted into `url_env`.
+- `emday docs deploy` — production/service guide: systemd unit (own-template
+  and `emday install`), running non-root, delivering secrets via
+  `EnvironmentFile=`, pinning a release, and gating a deploy on `check-config`.
+- Per-source reference topics `emday docs source-<type>` (public-ip, local-ip,
+  cpu, memory, disk, process): exact metrics with types/units, how each reads
+  the system and what privilege it needs (non-root, `hidepid` caveat for
+  `process`), rule examples, and failure modes (partial-tolerance, absent-vs-zero).
 
 ### Fixed
 
