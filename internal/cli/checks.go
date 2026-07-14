@@ -35,14 +35,23 @@ func newCheckConfigCmd() *cobra.Command {
 			if jsonOut {
 				enc := json.NewEncoder(cmd.OutOrStdout())
 				enc.SetIndent("", "  ")
-				return enc.Encode(map[string]any{
+				if err := enc.Encode(map[string]any{
 					"config_dir": dir,
 					"ok":         len(probs) == 0,
 					"sources":    len(cfg.Sources),
 					"rules":      len(cfg.Rules),
 					"notifiers":  len(cfg.Notifiers),
 					"problems":   probs,
-				})
+				}); err != nil {
+					return err
+				}
+				// Still exit non-zero on problems so CI/Ansible can gate on the
+				// exit code alone — the JSON already went to stdout, this error
+				// only reaches stderr.
+				if len(probs) > 0 {
+					return fmt.Errorf("%d problem(s) found", len(probs))
+				}
+				return nil
 			}
 			out := cmd.OutOrStdout()
 			fmt.Fprintf(out, "config dir: %s\n", dir)

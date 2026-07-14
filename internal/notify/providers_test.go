@@ -152,6 +152,37 @@ func TestSlackAndDiscordShape(t *testing.T) {
 	}
 }
 
+// url_env resolves the target URL from the environment, so the URL (itself a
+// secret for slack/discord/webhook) can stay out of emday.yaml.
+func TestURLEnvResolves(t *testing.T) {
+	var got map[string]any
+	srv := capture(t, func(w http.ResponseWriter, r *http.Request) {
+		json.NewDecoder(r.Body).Decode(&got)
+	})
+	t.Setenv("EMDAY_TEST_SLACK_URL", srv.URL)
+	s, err := newSlack("s", &config.Notifier{Type: "slack", URLEnv: "EMDAY_TEST_SLACK_URL"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := s.Send(context.Background(), testEvent()); err != nil {
+		t.Fatal(err)
+	}
+	if got["attachments"] == nil {
+		t.Fatalf("slack via url_env did not reach the server: %v", got)
+	}
+}
+
+// A url_env naming a variable that is empty here must fail loudly at build
+// time, not send to an empty URL — the URL is usually the secret and the
+// service does not inherit the operator's shell.
+func TestURLEnvEmptyFailsEarly(t *testing.T) {
+	t.Setenv("EMDAY_TEST_SLACK_URL", "")
+	_, err := newSlack("s", &config.Notifier{Type: "slack", URLEnv: "EMDAY_TEST_SLACK_URL"})
+	if err == nil || !strings.Contains(err.Error(), "EMDAY_TEST_SLACK_URL not set") {
+		t.Fatalf("want early empty-url error, got %v", err)
+	}
+}
+
 // A configured secret_env that is unset must fail with the real cause, not
 // reach Lark and come back as an opaque 19021.
 func TestLarkEmptySecretEnvFailsEarly(t *testing.T) {

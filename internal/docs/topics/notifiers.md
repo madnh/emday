@@ -9,6 +9,25 @@ Test any notifier without waiting for an alert:
 
     emday test-notify my-telegram
 
+## Keeping the URL out of the config file (`url_env`)
+
+For slack, discord, lark, webhook and ntfy the webhook URL is itself a
+secret — the token lives in the path. Any notifier that takes `url:` also
+accepts `url_env:`, the NAME of an environment variable holding the URL, so
+it never lands in `emday.yaml`:
+
+    notifiers:
+      my-slack:
+        type: slack
+        url_env: EMDAY_SLACK_URL      # NAME of the env var, not the URL
+
+This mirrors `token_env` (telegram) and `secret_env` (lark). The service
+does not inherit your shell — deliver the variable via systemd
+`EnvironmentFile=` (see `emday docs deploy`). `emday doctor` flags a
+`url_env` whose variable is unset, and the service refuses to start rather
+than POST to an empty URL. If you keep the URL inline instead, the config
+file must be `root:0600`.
+
 ## telegram
 
     notifiers:

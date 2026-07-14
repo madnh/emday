@@ -125,10 +125,14 @@ func (c *Config) Validate() []Problem {
 					field, val, strings.TrimSuffix(field, "_env"))
 			}
 		}
+		if strings.HasPrefix(n.URLEnv, "http://") || strings.HasPrefix(n.URLEnv, "https://") {
+			add(where, "url_env must be the NAME of an environment variable (e.g. EMDAY_SLACK_URL), but %q is the URL itself — put the URL in `url:`, or export it under a name and reference that", n.URLEnv)
+		}
+		hasURL := n.URL != "" || n.URLEnv != ""
 		switch n.Type {
 		case "webhook":
-			if n.URL == "" {
-				add(where, "webhook needs `url`")
+			if !hasURL {
+				add(where, "webhook needs `url` (or `url_env`)")
 			}
 		case "telegram":
 			if n.Token == "" && n.TokenEnv == "" {
@@ -138,20 +142,20 @@ func (c *Config) Validate() []Problem {
 				add(where, "telegram needs `chat_id`")
 			}
 		case "ntfy":
-			if n.URL == "" {
-				add(where, "ntfy needs `url` (e.g. https://ntfy.sh/your-topic)")
+			if !hasURL {
+				add(where, "ntfy needs `url` (e.g. https://ntfy.sh/your-topic), or `url_env`")
 			}
 		case "lark":
-			if n.URL == "" {
-				add(where, "lark needs `url` (the custom bot webhook)")
+			if !hasURL {
+				add(where, "lark needs `url` (the custom bot webhook), or `url_env`")
 			}
 		case "slack":
-			if n.URL == "" {
-				add(where, "slack needs `url` (an incoming webhook)")
+			if !hasURL {
+				add(where, "slack needs `url` (an incoming webhook), or `url_env`")
 			}
 		case "discord":
-			if n.URL == "" {
-				add(where, "discord needs `url` (a channel webhook)")
+			if !hasURL {
+				add(where, "discord needs `url` (a channel webhook), or `url_env`")
 			}
 		default:
 			add(where, "unknown type %q (supported: webhook, telegram, ntfy, lark, slack, discord)", n.Type)

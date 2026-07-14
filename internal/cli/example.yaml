@@ -92,3 +92,9 @@ notifiers:
   #   type: lark
   #   url: https://open.larksuite.com/open-apis/bot/v2/hook/...
   #   secret_env: EMDAY_LARK_SECRET  # only if bot signature is enabled
+
+  # The webhook URL is itself a secret — keep it out of this file with
+  # url_env (the NAME of an env var). Works for slack/discord/lark/webhook/ntfy.
+  # my-slack:
+  #   type: slack
+  #   url_env: EMDAY_SLACK_URL       # deliver via systemd EnvironmentFile= — see `emday docs deploy`

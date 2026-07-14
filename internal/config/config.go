@@ -104,6 +104,10 @@ type Notifier struct {
 
 	// shared
 	URL string `yaml:"url"`
+	// The webhook URL is often itself a secret (the token lives in the path),
+	// so it can be resolved from an env var instead — keeping it out of the
+	// config file, exactly like token_env/secret_env.
+	URLEnv string `yaml:"url_env"` // env var holding the target URL
 
 	// webhook
 	Method       string            `yaml:"method"`

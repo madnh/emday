@@ -68,6 +68,20 @@ func sortedFieldKeys(fields map[string]string) []string {
 	return keys
 }
 
+// resolveURL resolves a notifier's target URL: prefer the env var over the
+// inline value. A url_env naming a variable that is empty here is a hard
+// error rather than a silent bad request — the URL is usually the secret, and
+// the service does not inherit your shell (systemd needs EnvironmentFile=).
+func resolveURL(cfg *config.Notifier) (string, error) {
+	if cfg.URLEnv != "" {
+		if v := os.Getenv(cfg.URLEnv); v != "" {
+			return v, nil
+		}
+		return "", fmt.Errorf("url is empty (env %s not set in this environment? the service does not inherit your shell — see `emday docs deploy`)", cfg.URLEnv)
+	}
+	return cfg.URL, nil
+}
+
 // secret resolves the telegram token: prefer the env var over the inline value.
 func secret(cfg *config.Notifier) string {
 	if cfg.TokenEnv != "" {

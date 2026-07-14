@@ -49,6 +49,42 @@ func TestInitCreatesAndRefusesOverwrite(t *testing.T) {
 	}
 }
 
+// check-config --json must still exit non-zero on an invalid config, so CI
+// and Ansible can gate on the exit code alone — while emitting the report as
+// JSON on stdout. (Regression: the --json branch used to always return nil.)
+func TestCheckConfigJSONExitsNonZeroOnProblems(t *testing.T) {
+	t.Setenv(config.EnvConfigDir, "")
+	t.Setenv(EnvNonInteractive, "1")
+	dir := t.TempDir()
+	bad := "version: 1\n" +
+		"sources:\n  cpu:\n    type: cpu\n" +
+		"rules:\n  - metric: cpu.percent\n    condition: \"value >= 90\"\n    notify: [ghost]\n"
+	if err := os.WriteFile(filepath.Join(dir, config.MarkerFile), []byte(bad), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	out, err := runCLI(t, "check-config", "--json", "--config-dir", dir)
+	if err == nil {
+		t.Fatalf("check-config --json on invalid config must return an error (non-zero exit)\n%s", out)
+	}
+	if !strings.Contains(out, `"ok": false`) {
+		t.Fatalf("expected JSON report with ok:false on stdout, got:\n%s", out)
+	}
+
+	// A valid config must exit zero with ok:true.
+	good := t.TempDir()
+	if out, err := runCLI(t, "init", "--config-dir", good); err != nil {
+		t.Fatalf("init: %v\n%s", err, out)
+	}
+	out, err = runCLI(t, "check-config", "--json", "--config-dir", good)
+	if err != nil {
+		t.Fatalf("check-config --json on valid config must exit zero: %v\n%s", err, out)
+	}
+	if !strings.Contains(out, `"ok": true`) {
+		t.Fatalf("expected ok:true, got:\n%s", out)
+	}
+}
+
 // The starter config written by `init` must always pass check-config —
 // this pins example.yaml to the real schema so they cannot drift apart.
 func TestStarterConfigIsValid(t *testing.T) {
