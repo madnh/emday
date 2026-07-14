@@ -10,7 +10,7 @@ running it as a service in production — with a config-management tool
 For production, pin an exact release rather than tracking latest. Releases
 publish per-platform archives and a `checksums.txt`:
 
-    v=0.1.1  arch=amd64                          # or arch=arm64
+    v=0.2.0  arch=amd64                          # or arch=arm64
     base=https://github.com/madnh/emday/releases/download/v$v
     curl -fsSLO $base/emday_${v}_linux_${arch}.tar.gz
     curl -fsSLO $base/checksums.txt
@@ -19,7 +19,7 @@ publish per-platform archives and a `checksums.txt`:
     install -m 0755 emday /usr/local/bin/emday
 
 The archive name uses the version **without** the leading `v`
-(`emday_0.1.1_linux_amd64.tar.gz`). There is no separate "stable" channel —
+(`emday_0.2.0_linux_amd64.tar.gz`). There is no separate "stable" channel —
 the latest `v*` tag is the release; pin that tag.
 
 ## The config directory

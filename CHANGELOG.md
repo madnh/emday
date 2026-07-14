@@ -6,6 +6,8 @@ All notable changes to emday are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-07-14
+
 ### Added
 
 - Notifiers that take `url:` (webhook, ntfy, lark, slack, discord) now also
