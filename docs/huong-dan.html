@@ -81,11 +81,12 @@ emday version</code></pre>
 <pre><code>sudo emday init</code></pre>
 <p>Chạy bằng <code>sudo</code>, emday tạo thư mục <code>/etc/emday</code> chứa toàn bộ những gì nó cần:</p>
 <pre><code>/etc/emday/
-├── emday.yaml     # file cấu hình (file DUY NHẤT bạn sửa)
-├── config.md      # tài liệu cấu hình, sinh tự động
-├── state.json     # bộ nhớ của engine (emday tự quản — đừng sửa)
-├── queue/         # thông báo chưa gửi được (tự quản)
-└── tmp/           # chỗ tạm cho exec script (tự quản)</code></pre>
+├── emday.yaml           # file cấu hình (file chính bạn sửa)
+├── config.md            # tài liệu cấu hình, sinh tự động
+├── emday.env.example    # mẫu khai secret — điền giá trị rồi copy (xem mục 4)
+├── state.json           # bộ nhớ của engine (emday tự quản — đừng sửa)
+├── queue/               # thông báo chưa gửi được (tự quản)
+└── tmp/                 # chỗ tạm cho exec script (tự quản)</code></pre>
 <div class="tip">💡 <code>init</code> là lệnh <strong>duy nhất</strong> tạo thư mục cấu hình, và nó
 từ chối ghi đè thư mục đã có. Mọi lệnh khác báo lỗi rõ ràng khi chưa init — không bao giờ
 âm thầm tạo dữ liệu sai chỗ.</div>
@@ -193,16 +194,30 @@ sudo emday start
 emday status                    # running</code></pre>
 <p>emday tự đăng ký vào systemd. Service <strong>không kế thừa shell của bạn</strong>,
 nên mọi biến env của notifier (<code>token_env</code>, <code>secret_env</code>,
-<code>url_env</code>) phải khai trực tiếp cho service:</p>
-<pre><code>sudo systemctl edit emday</code></pre>
-<pre><code># nội dung override — đưa secret vào file riêng, chmod 0600:
+<code>url_env</code>) phải khai trực tiếp cho service.</p>
+<p>Bạn không cần nhớ tên biến: <code>emday init</code> đã tạo sẵn
+<code>/etc/emday/emday.env.example</code> liệt kê đủ các biến <code>EMDAY_*</code>,
+cái nào chưa dùng thì để dạng comment. Chỉ việc <strong>điền giá trị</strong>:</p>
+<pre><code>sudoedit /etc/emday/emday.env.example</code></pre>
+<pre><code># /etc/emday/emday.env.example — dạng KEY=VALUE, không có `export`
+EMDAY_TG_TOKEN=123456:ABC-token-cua-bot
+#EMDAY_LARK_SECRET=xxxx
+#EMDAY_SLACK_URL=https://hooks.slack.com/services/T/B/X</code></pre>
+<p>Rồi <strong>copy</strong> nó tới chỗ service đọc. Unit do <code>emday install</code> sinh ra
+đã sẵn đọc <code>/etc/sysconfig/emday</code>, nên không cần sửa unit:</p>
+<pre><code>sudo install -m 0600 /etc/emday/emday.env.example /etc/sysconfig/emday
+sudo systemctl restart emday</code></pre>
+<p>Nếu bạn tự viết unit thì trỏ <code>EnvironmentFile=</code> vào bản copy của mình:</p>
+<pre><code>sudo install -m 0600 /etc/emday/emday.env.example /etc/emday/emday.env
+sudo systemctl edit emday</code></pre>
+<pre><code># nội dung override:
 [Service]
 EnvironmentFile=/etc/emday/emday.env</code></pre>
-<pre><code># /etc/emday/emday.env  (mode 0600, render từ kho secret của bạn)
-EMDAY_TG_TOKEN=123456:ABC-token-cua-bot
-EMDAY_LARK_SECRET=xxxx
-EMDAY_SLACK_URL=https://hooks.slack.com/services/T/B/X</code></pre>
 <pre><code>sudo systemctl restart emday</code></pre>
+<div class="tip">⚠️ <strong>emday KHÔNG tự đọc file này.</strong> Nó chỉ là bản mẫu —
+điền xong mà chưa copy tới chỗ <code>EnvironmentFile=</code> trỏ vào thì service vẫn không
+thấy secret. Và vì biến chỉ được đọc lúc process khởi động, sửa file xong phải
+<code>systemctl restart emday</code> — <code>daemon-reload</code> không đủ.</div>
 <div class="tip">💡 Không source nào cần root — nên chạy service bằng user riêng
 (<code>User=emday</code>) cho an toàn. Toàn bộ chuyện triển khai fleet (systemd, non-root,
 secret, pin version, gate <code>check-config</code>) gói trong <code>emday docs deploy</code>.</div>

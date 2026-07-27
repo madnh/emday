@@ -79,9 +79,14 @@ rules:
 notifiers:
   # Types: telegram, ntfy, lark, slack, discord, webhook —
   # see `emday docs notifiers`. Verify with: emday test-notify my-telegram
+  #
+  # Secrets stay OUT of this file: token_env/secret_env/url_env hold the NAME
+  # of an environment variable. `init` seeded emday.env.example next to this
+  # file with those names — fill it in and copy it to your service's
+  # EnvironmentFile= (emday does not read it). See `emday docs deploy`.
   my-telegram:
     type: telegram
-    token_env: EMDAY_TG_TOKEN        # export EMDAY_TG_TOKEN=<bot token>
+    token_env: EMDAY_TG_TOKEN        # name of the var; value goes in your EnvironmentFile
     chat_id: "CHANGE_ME"
 
   # my-phone:
@@ -97,4 +102,4 @@ notifiers:
   # url_env (the NAME of an env var). Works for slack/discord/lark/webhook/ntfy.
   # my-slack:
   #   type: slack
-  #   url_env: EMDAY_SLACK_URL       # deliver via systemd EnvironmentFile= — see `emday docs deploy`
+  #   url_env: EMDAY_SLACK_URL       # already listed in emday.env.example — see `emday docs deploy`

@@ -31,8 +31,8 @@ func TestInitCreatesAndRefusesOverwrite(t *testing.T) {
 		t.Fatalf("init failed: %v\n%s", err, out)
 	}
 
-	// The seeded dir must be complete: marker, guide, state.
-	for _, f := range []string{config.MarkerFile, "config.md", "state.json"} {
+	// The seeded dir must be complete: marker, guide, secrets template, state.
+	for _, f := range []string{config.MarkerFile, "config.md", EnvExampleFile, "state.json"} {
 		if !fileExists(filepath.Join(dir, f)) {
 			t.Errorf("init did not create %s", f)
 		}
@@ -101,6 +101,64 @@ func TestStarterConfigIsValid(t *testing.T) {
 	}
 	if !strings.Contains(out, "ok") {
 		t.Fatalf("expected ok, got:\n%s", out)
+	}
+}
+
+// The secrets template is a static file, so it can silently drift from
+// example.yaml. Pin the two together: every `*_env` the starter config
+// references must be listed in the template (a name the operator cannot find
+// there is a name they will get wrong), and every declaration must be
+// systemd-parsable KEY=VALUE — systemd reads the file itself, not via a shell.
+func TestEnvExampleCoversStarterConfig(t *testing.T) {
+	t.Setenv(config.EnvConfigDir, "")
+	t.Setenv(EnvNonInteractive, "1")
+	dir := filepath.Join(t.TempDir(), "emday")
+	if out, err := runCLI(t, "init", "--config-dir", dir); err != nil {
+		t.Fatalf("init: %v\n%s", err, out)
+	}
+
+	raw, err := os.ReadFile(filepath.Join(dir, EnvExampleFile))
+	if err != nil {
+		t.Fatalf("reading %s: %v", EnvExampleFile, err)
+	}
+	declared := map[string]bool{}
+	for i, line := range strings.Split(string(raw), "\n") {
+		line = strings.TrimSpace(line)
+		if line == "" || !strings.Contains(line, "EMDAY_") {
+			continue
+		}
+		body := strings.TrimSpace(strings.TrimPrefix(line, "#"))
+		if strings.HasPrefix(body, "export ") {
+			t.Errorf("%s line %d: `export` is not valid in an EnvironmentFile: %q", EnvExampleFile, i+1, line)
+			continue
+		}
+		key, _, ok := strings.Cut(body, "=")
+		if !ok {
+			continue // prose that merely names a variable
+		}
+		// Commented-out entries count: uncommenting is how you enable one.
+		if key = strings.TrimSpace(key); !strings.HasPrefix(key, "EMDAY_") {
+			continue
+		}
+		if strings.ContainsAny(key, " \t") {
+			t.Errorf("%s line %d: key must be bare KEY=VALUE, got %q", EnvExampleFile, i+1, line)
+		}
+		declared[key] = true
+	}
+	if !declared["EMDAY_TG_TOKEN"] {
+		t.Fatalf("%s parsed no variables — the parser or the template is broken", EnvExampleFile)
+	}
+
+	cfg, err := config.Load(dir)
+	if err != nil {
+		t.Fatalf("loading starter config: %v", err)
+	}
+	for name, n := range cfg.Notifiers {
+		for _, env := range []string{n.TokenEnv, n.SecretEnv, n.URLEnv} {
+			if env != "" && !declared[env] {
+				t.Errorf("notifiers.%s references $%s, but %s does not list it", name, env, EnvExampleFile)
+			}
+		}
 	}
 }
 

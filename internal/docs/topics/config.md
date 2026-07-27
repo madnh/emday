@@ -6,14 +6,21 @@ One directory holds everything emday needs — config, state, queue, docs.
 Move the directory and everything moves with it:
 
     emday/
-    ├── emday.yaml     config (this directory's marker; has `version: 1`)
-    ├── config.md      this guide, written by `emday init`
-    ├── state.json     engine memory (managed by emday — do not edit)
-    ├── queue/         notifications not yet delivered (managed by emday)
-    └── tmp/           scratch space for exec sources (managed by emday)
+    ├── emday.yaml           config (this directory's marker; has `version: 1`)
+    ├── config.md            this guide, written by `emday init`
+    ├── emday.env.example    secrets template, written by `emday init` — see below
+    ├── state.json           engine memory (managed by emday — do not edit)
+    ├── queue/               notifications not yet delivered (managed by emday)
+    └── tmp/                 scratch space for exec sources (managed by emday)
 
 State and queue paths are derived from the directory — they are never
 configured, so they cannot drift somewhere else.
+
+`emday.env.example` is inert: **emday never reads it.** It is a checklist of
+the `EMDAY_*` variable names your notifiers can reference, so you fill in
+values instead of remembering names. Copy it to whatever your service unit's
+`EnvironmentFile=` points at — `emday docs deploy` has the exact commands.
+Deleting it changes nothing.
 
 ## How emday finds the directory
 

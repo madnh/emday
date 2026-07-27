@@ -23,10 +23,12 @@ it never lands in `emday.yaml`:
 
 This mirrors `token_env` (telegram) and `secret_env` (lark). The service
 does not inherit your shell — deliver the variable via systemd
-`EnvironmentFile=` (see `emday docs deploy`). `emday doctor` flags a
-`url_env` whose variable is unset, and the service refuses to start rather
-than POST to an empty URL. If you keep the URL inline instead, the config
-file must be `root:0600`.
+`EnvironmentFile=`. `emday init` seeds `emday.env.example` in the config dir
+listing every one of these names; fill it in and copy it where your unit
+points (emday does not read it — see `emday docs deploy`). `emday doctor`
+flags a `url_env` whose variable is unset, and the service refuses to start
+rather than POST to an empty URL. If you keep the URL inline instead, the
+config file must be `root:0600`.
 
 ## telegram
 
