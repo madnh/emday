@@ -34,6 +34,7 @@ type doctorReport struct {
 	Rules          int              `json:"rules"`
 	Notifiers      []string         `json:"notifiers,omitempty"`
 	EnvMissing     []string         `json:"env_missing,omitempty"` // notifier env vars unset in THIS shell
+	EnvExample     string           `json:"env_example,omitempty"` // seeded secrets template, if still present
 
 	StateExists  bool           `json:"state_exists"`
 	StateSize    int64          `json:"state_size,omitempty"`
@@ -46,6 +47,11 @@ type doctorReport struct {
 type candidateReport struct {
 	Path      string `json:"path"`
 	HasMarker bool   `json:"has_marker"`
+}
+
+func statOK(path string) bool {
+	_, err := os.Stat(path)
+	return err == nil
 }
 
 func newDoctorCmd() *cobra.Command {
@@ -112,6 +118,11 @@ func gatherDoctor() *doctorReport {
 			}
 		}
 		rep.Rules = len(cfg.Rules)
+	}
+
+	// Stat only — doctor never creates what it inspects.
+	if envExample := filepath.Join(res.Dir, EnvExampleFile); statOK(envExample) {
+		rep.EnvExample = envExample
 	}
 
 	statePath := filepath.Join(res.Dir, "state.json")
@@ -192,6 +203,9 @@ func printDoctor(cmd *cobra.Command, r *doctorReport, verdict bool) {
 			}
 			for _, miss := range r.EnvMissing {
 				p("  env ⚠         %s is not set in THIS shell (a service gets its env from the service manager, e.g. `systemctl edit emday`)", miss)
+			}
+			if len(r.EnvMissing) > 0 && r.EnvExample != "" {
+				p("  env template  %s — fill it in, then copy it to your unit's EnvironmentFile= (`%s docs deploy`)", r.EnvExample, appinfo.Name())
 			}
 		}
 		p("▸ Runtime")

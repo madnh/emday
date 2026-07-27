@@ -18,6 +18,16 @@ import (
 //go:embed example.yaml
 var exampleConfig []byte
 
+// exampleEnv is a template, not a loaded file: emday never reads it. It is
+// seeded so the operator edits values instead of recalling variable names.
+//
+//go:embed example.env
+var exampleEnv []byte
+
+// EnvExampleFile is the secrets template `init` seeds into the config dir.
+// It is copied to wherever the service unit's EnvironmentFile= points.
+const EnvExampleFile = "emday.env.example"
+
 func newInitCmd() *cobra.Command {
 	var yes bool
 	cmd := &cobra.Command{
@@ -90,6 +100,10 @@ func runInit(cmd *cobra.Command, yes bool) error {
 	if err == nil {
 		os.WriteFile(filepath.Join(abs, "config.md"), []byte(guide), 0o600)
 	}
+	// 0600 even though it ships no secret: the operator fills it in place.
+	if err := os.WriteFile(filepath.Join(abs, EnvExampleFile), exampleEnv, 0o600); err != nil {
+		return err
+	}
 	if err := os.WriteFile(filepath.Join(abs, "state.json"), []byte("{}\n"), 0o600); err != nil {
 		return err
 	}
@@ -109,8 +123,10 @@ func runInit(cmd *cobra.Command, yes bool) error {
 	if !discoverable {
 		fmt.Fprintf(out, "\nNote: this location is not auto-discovered. Point commands at it with:\n  --config-dir %s   or   %s=%s\n", abs, config.EnvConfigDir, abs)
 	}
-	fmt.Fprintf(out, "\nNext steps:\n  1. Edit %s (guide: %s docs config)\n  2. %s check-config\n  3. %s test-notify <notifier>\n  4. %s run   (foreground)  or  %s install (as a service)\n",
-		marker, name, name, name, name, name)
+	// Step 2 states the non-obvious part up front: the template is inert until
+	// it is wired into the unit. Seeding a file nobody reads would be a trap.
+	fmt.Fprintf(out, "\nNext steps:\n  1. Edit %s (guide: %s docs config)\n  2. Fill in %s, then copy it to your service's EnvironmentFile=\n     (emday does NOT read it — see `%s docs deploy`)\n  3. %s check-config\n  4. %s test-notify <notifier>\n  5. %s run   (foreground)  or  %s install (as a service)\n",
+		marker, name, filepath.Join(abs, EnvExampleFile), name, name, name, name, name)
 	return nil
 }
 

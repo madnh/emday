@@ -6,6 +6,17 @@ All notable changes to emday are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- `emday init` now seeds `emday.env.example` in the config dir: a `KEY=VALUE`
+  template listing every `EMDAY_*` variable the starter config can reference
+  (`token_env`, `secret_env`, `url_env`), unused ones commented out, so you
+  fill in values instead of recalling names. emday **does not read it** — it
+  is a template to copy to wherever your service unit's `EnvironmentFile=`
+  points (the unit `emday install` generates already reads
+  `/etc/sysconfig/emday`). `emday doctor` points at it when a referenced
+  variable is unset. Documented in `emday docs config` / `emday docs deploy`.
+
 ## [0.2.0] - 2026-07-14
 
 ### Added

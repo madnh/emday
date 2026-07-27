@@ -188,9 +188,16 @@ emday version</code></pre>
 <h2 id="quickstart">quick start</h2>
 <pre><code>sudo emday init            # creates /etc/emday with a commented starter config
 sudo vi /etc/emday/emday.yaml   # add your notifier, tweak rules
+sudo vi /etc/emday/emday.env.example        # fill in the secrets it lists
+sudo install -m 0600 /etc/emday/emday.env.example /etc/sysconfig/emday
 emday check-config         # validates config, compiles every rule
 emday test-notify my-telegram   # make sure alerts actually arrive
 sudo emday install &amp;&amp; sudo emday start   # run as a system service</code></pre>
+<div class="tip"><code>init</code> seeds <code>emday.env.example</code> listing every
+<code>EMDAY_*</code> variable your notifiers can reference, so you fill in values rather than
+recall names. emday does <strong>not</strong> read it — copy it to whatever your unit's
+<code>EnvironmentFile=</code> points at (the unit <code>emday install</code> generates already
+reads <code>/etc/sysconfig/emday</code>). Details: <code>emday docs deploy</code>.</div>
 <div class="tip">Something wrong? <code>emday doctor --verdict</code> diagnoses the deployment —
 which config resolved, what failed, and the next step — without touching anything.</div>
 
