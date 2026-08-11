@@ -12,7 +12,8 @@ documentation outside this binary.
 
 - A **source** collects metrics on an interval: built-ins `public-ip` (via
   user-configured endpoints, strictly validated IPv4/IPv6), `local-ip` (NIC
-  addresses from the kernel), `cpu`, `memory`, `disk`, `process`, and `exec`
+  addresses from the kernel), `cpu`, `memory`, `disk`, `process`, `cert` (TLS expiry,
+  chain and issuer), and `exec`
   (any script). Each built-in has a full reference — exact metrics, required
   permissions, rule examples, failure modes — at `emday docs source-<type>`
   (e.g. `emday docs source-disk`).

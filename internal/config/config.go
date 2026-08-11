@@ -17,6 +17,13 @@ import (
 // silently misreading it).
 const SchemaVersion = 1
 
+// Defaults specific to the cert source, which samples far more slowly than
+// every other source and dials over the network.
+const (
+	defaultCertInterval = 6 * time.Hour
+	defaultCertTimeout  = 10 * time.Second
+)
+
 // MarkerFile is the fixed config filename whose presence marks a config dir.
 // It names a data format, so it never changes with the binary name.
 const MarkerFile = "emday.yaml"
@@ -76,6 +83,10 @@ type Source struct {
 
 	// process
 	Processes []string `yaml:"processes"` // process names to watch
+
+	// cert
+	Endpoints map[string]string `yaml:"endpoints"` // alias -> host[:port] to probe over TLS
+	Files     map[string]string `yaml:"files"`     // alias -> PEM file to read
 }
 
 type Rule struct {
@@ -166,10 +177,20 @@ func (c *Config) applyDefaults() {
 	}
 	for _, s := range c.Sources {
 		if s.Interval.Duration == 0 {
-			s.Interval = c.Defaults.Interval
+			// Certificates change on the scale of days; inheriting the
+			// one-minute default would mean 1440 outbound probes per
+			// endpoint per day to learn the same number.
+			if s.Type == "cert" {
+				s.Interval.Duration = defaultCertInterval
+			} else {
+				s.Interval = c.Defaults.Interval
+			}
 		}
 		if s.Type == "exec" && s.Timeout.Duration == 0 {
 			s.Timeout.Duration = 30 * time.Second
+		}
+		if s.Type == "cert" && s.Timeout.Duration == 0 {
+			s.Timeout.Duration = defaultCertTimeout
 		}
 	}
 	for _, r := range c.Rules {

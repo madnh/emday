@@ -45,6 +45,13 @@ sources:
   #   type: process                  # services.nginx.running (1/0)
   #   processes: [nginx, sshd]
 
+  # TLS certificates — expiry, chain, issuer. See `emday docs source-cert`:
+  # cert:
+  #   type: cert                     # cert.www.days_left / .status / .issuer
+  #   interval: 6h                   # default for this type; certs move slowly
+  #   endpoints:                     # alias -> host[:port], port defaults to 443
+  #     www: "example.com"
+
   # Extend emday with any script — see `emday docs exec`:
   # backup:
   #   type: exec
@@ -75,6 +82,22 @@ rules:
     condition: "value >= 90"
     level: error
     notify: [my-telegram]
+
+  # With the cert source above enabled, these three cover the whole story:
+  # how long is left, whether the certificate is usable at all, and whether
+  # someone swapped it. Alerting only on days_left goes silent when the host
+  # is unreachable.
+  # - metric: cert.www.days_left
+  #   condition: "value <= 14"
+  #   level: error
+  #   notify: [my-telegram]
+  # - metric: cert.www.status
+  #   condition: 'value != "ok"'
+  #   for: 15m
+  #   notify: [my-telegram]
+  # - metric: cert.www.issuer
+  #   on_change: true
+  #   notify: [my-telegram]
 
 notifiers:
   # Types: telegram, ntfy, lark, slack, discord, webhook —

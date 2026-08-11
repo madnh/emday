@@ -161,7 +161,7 @@ footer a { color: var(--muted); }
 
 <section class="pillars" aria-label="What emday is">
   <div><h3>watches</h3>
-    <p>Public IP, CPU, RAM, disk, processes — and anything your own scripts can measure.</p></div>
+    <p>Public IP, CPU, RAM, disk, processes, TLS certificates — and anything your own scripts can measure.</p></div>
   <div><h3>notifies</h3>
     <p>Telegram, ntfy, Lark, Slack, Discord, any webhook. Queued and retried — offline alerts arrive when the network returns.</p></div>
   <div><h3>self-contained</h3>
@@ -214,6 +214,7 @@ sources:
   lan:  {type: local-ip, interfaces: [eth0]}
   cpu:  {type: cpu, interval: 30s}
   disk: {type: disk, mounts: {root: "/"}}
+  cert: {type: cert, endpoints: {www: "example.com"}}
 
 rules:
   - metric: wan.v4
@@ -222,6 +223,10 @@ rules:
   - metric: cpu.percent
     condition: "value >= 90"   # expression over `value`
     for: 5m                    # must hold 5 minutes (anti-flapping)
+    notify: [my-telegram]
+  - metric: cert.www.days_left
+    condition: "value &lt;= 14"   # renew before it breaks HTTPS
+    level: error
     notify: [my-telegram]
 
 notifiers:
@@ -281,6 +286,7 @@ examples, failure modes):</p>
 <li><a href="https://github.com/madnh/emday/blob/main/internal/docs/topics/source-memory.md">source-memory</a> — RAM and swap</li>
 <li><a href="https://github.com/madnh/emday/blob/main/internal/docs/topics/source-disk.md">source-disk</a> — filesystem used/free</li>
 <li><a href="https://github.com/madnh/emday/blob/main/internal/docs/topics/source-process.md">source-process</a> — named processes up/down + count</li>
+<li><a href="https://github.com/madnh/emday/blob/main/internal/docs/topics/source-cert.md">source-cert</a> — TLS certificate expiry, chain and issuer</li>
 </ul>
 <div class="tip">Point an AI agent at a server with emday and tell it to run
 <code>emday docs agent</code> — that one page is enough for it to configure, extend, and

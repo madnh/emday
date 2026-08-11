@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"net"
 	"net/url"
 	"strings"
 
@@ -12,6 +13,7 @@ import (
 var sourceTypes = map[string]bool{
 	"public-ip": true, "local-ip": true,
 	"cpu": true, "memory": true, "disk": true, "process": true, "exec": true,
+	"cert": true,
 }
 
 var notifierTypes = map[string]bool{
@@ -72,6 +74,23 @@ func (c *Config) Validate() []Problem {
 			if len(s.Interfaces) > 0 {
 				add(where, "`interfaces` belongs to a `local-ip` source, not public-ip")
 			}
+		}
+		if s.Type == "cert" {
+			if len(s.Endpoints) == 0 && len(s.Files) == 0 {
+				add(where, "cert source needs `endpoints` (alias -> host[:port]) and/or `files` (alias -> PEM path)")
+			}
+			for alias, target := range s.Endpoints {
+				if err := validateCertTarget(target); err != nil {
+					add(where, "endpoints.%s: %v", alias, err)
+				}
+			}
+			for alias, path := range s.Files {
+				if path == "" {
+					add(where, "files.%s: empty path", alias)
+				}
+			}
+		} else if len(s.Endpoints) > 0 || len(s.Files) > 0 {
+			add(where, "`endpoints`/`files` belong to a `cert` source, not %s", s.Type)
 		}
 		if s.Type == "local-ip" {
 			if len(s.Interfaces) == 0 {
@@ -163,6 +182,22 @@ func (c *Config) Validate() []Problem {
 	}
 
 	return probs
+}
+
+// validateCertTarget rejects what an operator is most likely to paste by
+// mistake — a URL, or a path — so check-config catches it now rather than the
+// first probe hours later.
+func validateCertTarget(target string) error {
+	if strings.Contains(target, "://") {
+		return fmt.Errorf("expected host[:port], not a URL: %q", target)
+	}
+	if target == "" || strings.ContainsAny(target, " \t/") {
+		return fmt.Errorf("expected host[:port], got %q", target)
+	}
+	if host, _, err := net.SplitHostPort(target); err == nil && host == "" {
+		return fmt.Errorf("expected host[:port], got %q", target)
+	}
+	return nil
 }
 
 // looksLikeSecretValue guesses whether a *_env field holds a pasted secret

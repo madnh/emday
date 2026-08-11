@@ -1,8 +1,9 @@
 # emday documentation
 
 emday is a self-contained monitoring daemon: it watches your server (IP
-address, CPU, RAM, disk, processes, anything a script can measure) and sends
-notifications when something changes or crosses a threshold.
+address, CPU, RAM, disk, processes, TLS certificates, anything a script can
+measure) and sends notifications when something changes or crosses a
+threshold.
 
 All documentation ships inside this binary. Topics:
 
@@ -21,6 +22,7 @@ Per-source reference (metrics, permissions, rules, gotchas):
     emday docs source-memory      RAM and swap
     emday docs source-disk        filesystem used/free
     emday docs source-process     named processes up/down + count
+    emday docs source-cert        TLS certificate expiry, chain and issuer
 
 Getting started:
 

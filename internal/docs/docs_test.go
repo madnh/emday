@@ -11,7 +11,7 @@ func TestExpectedTopicsExist(t *testing.T) {
 	for _, want := range []string{
 		"index", "agent", "conditions", "config", "exec", "notifiers", "deploy",
 		"source-public-ip", "source-local-ip", "source-cpu",
-		"source-memory", "source-disk", "source-process",
+		"source-memory", "source-disk", "source-process", "source-cert",
 	} {
 		content, err := Topic(want)
 		if err != nil {

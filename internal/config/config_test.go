@@ -297,3 +297,60 @@ notifiers: {}
 		}
 	}
 }
+
+func TestCertSourceDefaults(t *testing.T) {
+	dir := writeConfig(t, `
+version: 1
+defaults: {interval: 1m}
+sources:
+  cert:
+    type: cert
+    endpoints: {wms: "wms.example.test"}
+notifiers: {}
+`)
+	cfg, err := Load(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if probs := cfg.Validate(); len(probs) != 0 {
+		t.Fatalf("unexpected problems: %v", probs)
+	}
+	// A cert source must NOT inherit defaults.interval: certificates change on
+	// the scale of days, and one minute would be 1440 probes per endpoint a day.
+	if got := cfg.Sources["cert"].Interval.Duration; got != 6*time.Hour {
+		t.Errorf("cert interval = %v, want 6h", got)
+	}
+	if got := cfg.Sources["cert"].Timeout.Duration; got != 10*time.Second {
+		t.Errorf("cert timeout = %v, want 10s", got)
+	}
+}
+
+func TestCertSourceValidation(t *testing.T) {
+	dir := writeConfig(t, `
+version: 1
+sources:
+  empty: {type: cert}
+  url: {type: cert, endpoints: {wms: "https://wms.example.test"}}
+  path: {type: cert, endpoints: {wms: "wms.example.test/health"}}
+  misplaced: {type: cpu, endpoints: {wms: "wms.example.test"}}
+notifiers: {}
+`)
+	cfg, err := Load(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	joined := ""
+	for _, p := range cfg.Validate() {
+		joined += p.String() + "\n"
+	}
+	for _, want := range []string{
+		"cert source needs `endpoints`", // no endpoints and no files
+		"not a URL",                     // endpoint pasted as a URL
+		`expected host[:port], got "wms.example.test/health"`, // endpoint with a path
+		"belong to a `cert` source, not cpu",                  // endpoints on another type
+	} {
+		if !strings.Contains(joined, want) {
+			t.Errorf("missing %q in:\n%s", want, joined)
+		}
+	}
+}
