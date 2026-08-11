@@ -113,3 +113,22 @@ color-coded embed.
 `.Message` `.Source` `.Time` `.Hostname` `.Resolved` `.Fields` and `.Text`
 (the default full rendering). The `json` function safely quotes any value.
 Omitting body_template sends a sensible JSON object with all fields.
+
+## What gets logged
+
+Every notification writes two lines to stderr (the journal, under systemd) —
+one when a rule fires and the event is queued, one when it is delivered:
+
+    alert rule/cert.wms.days_left [error] cert.wms.days_left: value <= 14 (value=9) -> ops
+    notifier ops: delivered rule/cert.wms.days_left [error] cert.wms.days_left: value <= 14
+
+So `journalctl -u emday | grep -E 'alert |delivered'` answers "did anything
+fire, and did it arrive" without asking the notification target.
+
+Suppressed alerts are logged too, and name the reason — otherwise "nothing
+fired" and "fired but stayed quiet" look identical:
+
+    rule cert.wms.days_left: value <= 14 matched (value 9) but is within its 30m0s cooldown, not notifying
+
+Delivery failures log the error and the retry delay; the event stays queued
+(`emday doctor` shows the depth) and is retried with backoff.

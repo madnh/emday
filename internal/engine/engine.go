@@ -9,6 +9,8 @@ import (
 	"encoding/hex"
 	"fmt"
 	"log"
+	"sort"
+	"strings"
 	"sync"
 	"time"
 
@@ -242,6 +244,7 @@ func (e *Engine) evalCondition(r *compiledRule, s model.Sample, now time.Time) {
 			cooldown := e.cooldownFor(r.cfg)
 			if rs.LastFire != nil && now.Sub(*rs.LastFire) < cooldown {
 				rs.NotifiedFiring = false // suppressed by cooldown
+				log.Printf("rule %s: %s matched (value %s) but is within its %s cooldown, not notifying", s.Metric, r.cfg.Condition, s.Value, cooldown)
 				return
 			}
 			t := now
@@ -311,11 +314,41 @@ func (e *Engine) cooldownFor(r *config.Rule) time.Duration {
 }
 
 func (e *Engine) dispatch(ev model.Event, targets []string) {
+	if len(targets) == 0 {
+		return
+	}
+	// Without this line the whole success path is silent: an operator reading
+	// the journal cannot tell "nothing fired" from "fired and was delivered".
+	log.Printf("alert %s [%s] %s%s -> %s", ev.Source, ev.Level, ev.Title, formatFields(ev.Fields), strings.Join(targets, ", "))
 	for _, target := range targets {
 		if err := e.queue.Enqueue(target, ev); err != nil {
 			log.Printf("enqueue to %s: %v", target, err)
 		}
 	}
+}
+
+// formatFields renders an event's fields in a stable order, so log lines for
+// the same event are byte-identical across runs.
+func formatFields(fields map[string]string) string {
+	if len(fields) == 0 {
+		return ""
+	}
+	keys := make([]string, 0, len(fields))
+	for k := range fields {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	var b strings.Builder
+	for i, k := range keys {
+		if i == 0 {
+			b.WriteString(" (")
+		} else {
+			b.WriteString(", ")
+		}
+		fmt.Fprintf(&b, "%s=%s", k, fields[k])
+	}
+	b.WriteString(")")
+	return b.String()
 }
 
 func dedupKey(e model.Event) string {
