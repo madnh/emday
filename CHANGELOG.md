@@ -34,6 +34,11 @@ All notable changes to emday are documented here. The format follows
 
 ### Fixed
 
+- Release config now sets `prerelease: auto`. `install.sh` resolves the newest
+  version through GitHub's `releases/latest`, which skips prereleases — but
+  GoReleaser does not mark one by default, so a tag like `v0.3.0-rc.1` would
+  have published as a full release and become the default download for every
+  one-line installer. `auto` marks it from the tag's semver suffix.
 - A rule that fired and a notification that was delivered used to write
   nothing at all: only failures were logged, so a journal showing just
   `watching: ...` was indistinguishable from one where every alert had gone

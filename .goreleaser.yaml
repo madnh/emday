@@ -47,6 +47,11 @@ changelog:
       order: 999
 
 release:
+  # `install.sh` resolves the newest version through GitHub's releases/latest,
+  # which skips prereleases. Without this, a tag like v0.3.0-rc.1 would publish
+  # as a full release and become the default download for every one-line
+  # installer — `auto` marks it from the tag's semver suffix instead.
+  prerelease: auto
   footer: |
     Full changelog: [CHANGELOG.md](https://github.com/madnh/emday/blob/main/CHANGELOG.md)
 
