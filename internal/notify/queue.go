@@ -154,6 +154,7 @@ func (q *Queue) drainOnce(ctx context.Context, name string, n Notifier) (int, er
 		if err := n.Send(ctx, e); err != nil {
 			return sent, err
 		}
+		log.Printf("notifier %s: delivered %s [%s] %s", name, e.Source, e.Level, e.Title)
 		os.Remove(path)
 		sent++
 	}

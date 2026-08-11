@@ -8,6 +8,21 @@ All notable changes to emday are documented here. The format follows
 
 ### Added
 
+- New built-in source `cert`: TLS certificate expiry, chain validity and
+  issuer, for endpoints reached over the network (`endpoints: {alias:
+  "host[:port]"}`, port defaults to 443) or PEM files on disk (`files`).
+  Emits `cert.<alias>.days_left` (floored, negative once expired),
+  `cert.<alias>.status` (`ok`, `expired`, `hostname-mismatch`, `untrusted`,
+  `dns-failure`, `refused`, `timeout`, `handshake-error`, `connect-error`,
+  `unreadable`) and `cert.<alias>.issuer` (for `on_change` — this is what
+  catches a substituted certificate). `status` is emitted even when the probe
+  fails, so an unreachable host cannot silence an expiry alert. The handshake
+  deliberately does not verify; verification runs separately in process, which
+  is what keeps "expired" and "untrusted" independent answers. `interval`
+  defaults to `6h` for this type rather than `defaults.interval`, and
+  `timeout` to `10s`. No new dependency, no external binaries, every platform.
+  Its one host requirement is a system trust store: without `ca-certificates`
+  every endpoint reads `untrusted`. Documented in `emday docs source-cert`.
 - `emday init` now seeds `emday.env.example` in the config dir: a `KEY=VALUE`
   template listing every `EMDAY_*` variable the starter config can reference
   (`token_env`, `secret_env`, `url_env`), unused ones commented out, so you
@@ -16,6 +31,21 @@ All notable changes to emday are documented here. The format follows
   points (the unit `emday install` generates already reads
   `/etc/sysconfig/emday`). `emday doctor` points at it when a referenced
   variable is unset. Documented in `emday docs config` / `emday docs deploy`.
+
+### Fixed
+
+- Release config now sets `prerelease: auto`. `install.sh` resolves the newest
+  version through GitHub's `releases/latest`, which skips prereleases — but
+  GoReleaser does not mark one by default, so a tag like `v0.3.0-rc.1` would
+  have published as a full release and become the default download for every
+  one-line installer. `auto` marks it from the tag's semver suffix.
+- A rule that fired and a notification that was delivered used to write
+  nothing at all: only failures were logged, so a journal showing just
+  `watching: ...` was indistinguishable from one where every alert had gone
+  out. emday now logs the firing event with the value that triggered it and
+  the notifiers it was routed to, logs each successful delivery, and logs an
+  alert suppressed by its cooldown together with the reason. Documented under
+  "What gets logged" in `emday docs notifiers`.
 
 ## [0.2.0] - 2026-07-14
 
@@ -107,6 +137,7 @@ First working release — the full pipeline described in DESIGN.md.
 - **Docs**: everything ships inside the binary (`emday docs`); `init`
   writes the config guide next to the config.
 
-[Unreleased]: https://github.com/madnh/emday/compare/v0.1.1...HEAD
+[Unreleased]: https://github.com/madnh/emday/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/madnh/emday/compare/v0.1.1...v0.2.0
 [0.1.1]: https://github.com/madnh/emday/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/madnh/emday/releases/tag/v0.1.0

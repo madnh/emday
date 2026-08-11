@@ -71,6 +71,10 @@ which directory resolved and why.
       services:
         type: process           # services.<name>.running (1/0), .count
         processes: [nginx, sshd]
+      cert:
+        type: cert              # cert.<alias>.days_left/.status/.issuer
+        interval: 6h            # default for this type — certs move slowly
+        endpoints: {wms: "wms.example.com"}
       backup:
         type: exec              # see `emday docs exec`
         command: /opt/scripts/check-backup.sh
@@ -104,6 +108,7 @@ failure modes — under `emday docs source-<type>`:
     memory       memory.percent/used_mb/total_mb/…    /proc                no
     disk         disk.<alias>.percent/free_gb         statfs(path)         no
     process      <name>.<proc>.running/count          /proc/<pid>          no*
+    cert         cert.<alias>.days_left/.status/…     outbound TLS         no
 
 `* process` needs care under `hidepid`/`ProtectProc` — see
 `emday docs source-process`. No built-in source needs root; see

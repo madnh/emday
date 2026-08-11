@@ -56,7 +56,7 @@ ol li, ul li { margin: 0.3rem 0; }
 
 <h1>Hướng dẫn sử dụng <span>em</span>day</h1>
 <p class="lead">Cài đặt và vận hành emday trên server Linux: theo dõi IP public, CPU, RAM,
-ổ cứng, process và script tuỳ ý — nhận thông báo qua Telegram, Lark, ntfy, Slack, Discord.</p>
+ổ cứng, process, chứng chỉ TLS và script tuỳ ý — nhận thông báo qua Telegram, Lark, ntfy, Slack, Discord.</p>
 
 <p>Tên gọi: khi server đổi IP, emday nhắn cho bạn — <em>“em đây, IP mới nè!”</em> 😉</p>
 
@@ -153,7 +153,50 @@ Bảng cú pháp điều kiện:</p>
 <pre><code>emday test-rule 'value >= 90' --value 95        # in ra: true
 emday test-rule 'value not in ["ok"]' --value failed</code></pre>
 
-<h3>3.3. Đích thông báo</h3>
+<h3>3.3. Chứng chỉ TLS sắp hết hạn</h3>
+<pre><code>sources:
+  cert:
+    type: cert
+    interval: 6h                  # mặc định của loại này — cert đổi theo ngày,
+    timeout: 10s                  # không cần probe mỗi phút
+    endpoints:                    # alias -&gt; host[:port], port mặc định 443
+      www: "example.com"
+      api: "api.example.com:8443"
+
+rules:
+  - metric: cert.www.days_left
+    condition: "value &lt;= 14"      # còn 14 ngày là phải gia hạn
+    level: error
+    notify: [tele]
+  - metric: cert.www.status
+    condition: 'value != "ok"'    # hết hạn / sai host / chain hỏng / không tới được
+    for: 15m                      # bỏ qua trục trặc mạng thoáng qua
+    notify: [tele]
+  - metric: cert.www.issuer
+    on_change: true               # cert bị thay giữa chừng
+    notify: [tele]</code></pre>
+<p>Mỗi alias sinh ra ba metric: <code>days_left</code> (số ngày còn lại, âm khi đã hết hạn),
+<code>status</code>, và <code>issuer</code>. <code>status</code> nhận một trong các giá trị
+<code>ok</code>, <code>expired</code>, <code>hostname-mismatch</code>, <code>untrusted</code>,
+<code>dns-failure</code>, <code>refused</code>, <code>timeout</code>,
+<code>handshake-error</code>, <code>connect-error</code>.</p>
+<div class="tip">⚠️ Source này cần <strong>trust store của hệ thống</strong> — đây là yêu cầu
+duy nhất nó đặt lên host. Máy chủ cài bình thường thì có sẵn; image container tối giản thì
+thường không. Đo trên <code>ubuntu:24.04</code> chưa có gói <code>ca-certificates</code>: mọi
+endpoint đều ra <code>untrusted</code>, kể cả cert hoàn toàn tốt. Cài
+<code>ca-certificates</code> là về lại <code>ok</code>. Kiểm tra bằng
+<code>ls /etc/ssl/certs/ca-certificates.crt</code> trước khi kết luận một cert là không tin cậy.</div>
+<div class="tip">💡 Nên đặt rule cho cả <code>status</code>, đừng chỉ canh
+<code>days_left</code>: khi host không tới được thì <code>days_left</code> không có giá trị
+để so sánh, rule im lặng — đúng lúc bạn cần biết nhất. <code>status</code> thì luôn được ghi
+nhận, kể cả khi probe thất bại.</div>
+<p>emday bắt tay TLS nhưng <strong>không gửi request nào</strong>, lấy chứng chỉ xong là đóng
+kết nối. Việc kiểm tra chain chạy riêng sau đó, nên "hết hạn" và "chain không tin cậy" là hai
+câu trả lời độc lập — không cái nào che cái nào. Rule <code>issuer</code> +
+<code>on_change</code> là thứ duy nhất bắt được trường hợp chứng chỉ bị thay bằng proxy chặn
+giữa: cert mới hợp lệ, còn hạn dài, mọi rule khác đều im.</p>
+
+<h3>3.4. Đích thông báo</h3>
 <p><strong>Telegram</strong> — tạo bot với @BotFather, thêm bot vào group, lấy chat id:</p>
 <pre><code>notifiers:
   tele:
@@ -183,7 +226,7 @@ Muốn giữ URL ngoài file config, khai <code>url_env</code> (TÊN biến env 
     type: slack
     url_env: EMDAY_SLACK_URL   # nạp qua systemd EnvironmentFile — xem mục 4</code></pre>
 
-<h3>3.4. Kiểm tra trước khi chạy</h3>
+<h3>3.5. Kiểm tra trước khi chạy</h3>
 <pre><code>emday check-config              # validate config + compile mọi điều kiện
 export EMDAY_TG_TOKEN=xxxx      # tạm thời, để test
 emday test-notify tele          # gửi thử một tin — kiểm tra điện thoại!</code></pre>
@@ -268,6 +311,7 @@ config có hợp lệ không? daemon đã chạy chưa? có thông báo nào đa
 <table>
 <tr><th>Triệu chứng</th><th>Kiểm tra</th></tr>
 <tr><td>Không nhận được thông báo</td><td><code>emday doctor --verdict</code> — nhìn mục queue; nếu kẹt thì <code>emday test-notify &lt;tên&gt;</code> để xem lỗi cụ thể (sai token? sai URL?)</td></tr>
+<tr><td>Muốn biết rule có bắn không</td><td><code>journalctl -u emday | grep -E 'alert |delivered'</code> — mỗi thông báo ghi 2 dòng: lúc rule khớp và lúc gửi thành công. Bị chặn bởi cooldown cũng có dòng riêng nói rõ lý do</td></tr>
 <tr><td>Service không chạy</td><td><code>emday status</code>, rồi <code>journalctl -u emday -n 50</code></td></tr>
 <tr><td>Sửa config xong quên kiểm tra</td><td><code>emday check-config</code> — luôn chạy sau mỗi lần sửa</td></tr>
 <tr><td>Điều kiện rule không như ý</td><td><code>emday test-rule '...' --value ...</code></td></tr>
@@ -294,6 +338,7 @@ trên GitHub. Trang này chỉ liệt kê, bấm vào để tới đúng file:</
 <li><a href="https://github.com/madnh/emday/blob/main/internal/docs/topics/source-memory.md">source-memory</a> — RAM và swap</li>
 <li><a href="https://github.com/madnh/emday/blob/main/internal/docs/topics/source-disk.md">source-disk</a> — dung lượng ổ/mount</li>
 <li><a href="https://github.com/madnh/emday/blob/main/internal/docs/topics/source-process.md">source-process</a> — process còn sống + số lượng</li>
+<li><a href="https://github.com/madnh/emday/blob/main/internal/docs/topics/source-cert.md">source-cert</a> — hạn chứng chỉ TLS, chain và issuer</li>
 </ul>
 <div class="tip">🤖 Dùng Claude Code / AI agent trên server? Bảo nó chạy
 <code>emday docs agent</code> — một trang đó đủ để agent tự cấu hình, viết script mở rộng

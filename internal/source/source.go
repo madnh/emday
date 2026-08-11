@@ -32,6 +32,8 @@ func New(name string, cfg *config.Source, tmpDir string) (Source, error) {
 		return newDiskSource(name, cfg), nil
 	case "process":
 		return newProcessSource(name, cfg), nil
+	case "cert":
+		return newCertSource(name, cfg), nil
 	case "exec":
 		return newExecSource(name, cfg, tmpDir), nil
 	default:
