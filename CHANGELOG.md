@@ -137,6 +137,7 @@ First working release — the full pipeline described in DESIGN.md.
 - **Docs**: everything ships inside the binary (`emday docs`); `init`
   writes the config guide next to the config.
 
-[Unreleased]: https://github.com/madnh/emday/compare/v0.1.1...HEAD
+[Unreleased]: https://github.com/madnh/emday/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/madnh/emday/compare/v0.1.1...v0.2.0
 [0.1.1]: https://github.com/madnh/emday/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/madnh/emday/releases/tag/v0.1.0
